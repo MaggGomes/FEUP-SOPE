@@ -17,6 +17,7 @@ int main(int argc, char *argv[]){
 	struct dirent *tempDir	= readdir(inDir);
 	struct stat stat_buf;
 	char diretorio[BUF_LENGTH];
+	FILE * output;
 
 	if(argc != 2){
 		printf("Invalid Arguments");
@@ -38,9 +39,9 @@ int main(int argc, char *argv[]){
     }
 
 		if(S_ISREG(stat_buf.st_mode)){
-
-			printf("%s\n",diretorio);
-
+			output = fopen("./files.txt","a");
+			fprintf(output,"%s\n",diretorio);
+			fclose(output);
 		}else if ((S_ISDIR(stat_buf.st_mode)) && strcmp(tempDir->d_name,".") && strcmp(tempDir->d_name,"..")){
 
 			pid = fork();
@@ -49,8 +50,9 @@ int main(int argc, char *argv[]){
 				printf("Fork failed");
 				return 1;
 			}else if (pid == 0) {
-
-				printf("%s\n",diretorio);
+				output = fopen("./files.txt","a");
+				fprintf(output,"%s\n",diretorio);
+				fclose(output);
 				execl("lsdir", "lsdir", (diretorio), NULL);
 				closedir(inDir);
 				return 0;
