@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
 
 	else if (pid == 0) {
 		// Starts a new child process, executing lsdir program
+		remove("files.txt");
 		execlp("./lsdir", "lsdir", argv[1], NULL);
 
 		// Line below only is executed if lsdir fails to execute
@@ -46,4 +47,4 @@ int main(int argc, char *argv[])
 	fclose(file);
 
 	return 0;
-} 
+}
