@@ -25,7 +25,7 @@ int explore_directory(const char* dirPath, const char* filePath){
 	printf("%s\n", dirPath);
 	if((inDir = opendir(dirPath)) == NULL){
 		fprintf(stderr, "Error:: Couldn't open the directory <%s>.\n", dirPath);
-		return 1;
+		exit(1);
 	}
 
 	printf("entrou\n");
@@ -36,12 +36,13 @@ int explore_directory(const char* dirPath, const char* filePath){
 		if (lstat(path, &fileStat) < 0){
 			fprintf(stderr, "Error:: %s.\n", strerror(errno));
 			closedir(inDir);
-			return 2;
+			exit(2);
 		}
 
 		if(S_ISREG(fileStat.st_mode)){
 			output = fopen(filePath,"a");
-			fprintf(output,"%s   %s\n",dirStream->d_name,path);
+			//name_of_the_file    complete_path    date_of_last_mod   size_in_bytes    mode_of_the_file
+			fprintf(output,"%-20s %40s %d %d %d\n", dirStream->d_name, path, (int) fileStat.st_mtime, (int) fileStat.st_size, (int) fileStat.st_mode);
 			fclose(output);
 		}
 
@@ -54,10 +55,10 @@ int explore_directory(const char* dirPath, const char* filePath){
 
 			if(pid == -1){
 				fprintf(stderr, "Error: Fork failed!\n");
-				return 3;
+				exit(3);
 			}else if (pid == 0) { // child
 				explore_directory(path, filePath);
-				return 4;
+				exit(4);
 			}
 
 			else{ // parent
