@@ -22,14 +22,16 @@ int explore_directory(const char* dirPath, const char* filePath){
 	int status;
 	FILE * output;
 
+	printf("%s\n", dirPath);
 	if((inDir = opendir(dirPath)) == NULL){
 		fprintf(stderr, "Error:: Couldn't open the directory <%s>.\n", dirPath);
 		return 1;
 	}
 
+	printf("entrou\n");
+
 	while((dirStream = readdir(inDir)) != NULL){
 		sprintf(path, "%s/%s", dirPath, dirStream->d_name);
-		char n[200];
 
 		if (lstat(path, &fileStat) < 0){
 			fprintf(stderr, "Error:: %s.\n", strerror(errno));
@@ -38,15 +40,9 @@ int explore_directory(const char* dirPath, const char* filePath){
 		}
 
 		if(S_ISREG(fileStat.st_mode)){
-			/*output = fopen(filePath,"a");
+			output = fopen(filePath,"a");
 			fprintf(output,"%s\n",path);
-			fclose(output);*/
-
-			// TODO Tentar usar o open()
-			/*int f = open(filePath, O_RDWR | O_APPEND | O_CREAT , S_IRUSR | S_IWUSR | S_IXUSR);
-			dup2(f,STDOUT_FILENO);
-			printf("%s\n", path);
-			close(f);*/
+			fclose(output);
 		}
 
 
@@ -84,9 +80,10 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "ERROR:: Wrong number of arguments. Please call as follows: "
 				"lsdir <directory path> <save file path>.\n");
 
-	// Clears the file where the
+	// Clears the file where the files will be saved
 	open(argv[2], O_TRUNC);
 	explore_directory(argv[1], argv[2]);
+	printf("%s\n%s\n", argv[1], argv[2]);
 
 	return 0;
 }

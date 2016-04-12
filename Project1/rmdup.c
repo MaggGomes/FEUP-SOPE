@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
 	int status;
 
 	// TODO usar return ou exit()
+	// TODO avaliar possibilidade de erro -1 na abertura do open()
 	if (argc < 2 ){
 		fprintf(stderr, "Error:: Invalid number of arguments. Did you forget to mention the <directory path> ? Please invoke the program as follows: rmdup <directory path>\n\n");
 		return 1;
