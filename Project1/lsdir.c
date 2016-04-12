@@ -41,7 +41,7 @@ int explore_directory(const char* dirPath, const char* filePath){
 
 		if(S_ISREG(fileStat.st_mode)){
 			output = fopen(filePath,"a");
-			fprintf(output,"%s\n",path);
+			fprintf(output,"%s   %s\n",dirStream->d_name,path);
 			fclose(output);
 		}
 
@@ -87,4 +87,3 @@ int main(int argc, char *argv[]){
 
 	return 0;
 }
-
