@@ -29,6 +29,7 @@ int explore_directory(const char* dirPath, const char* filePath){
 
 	while((dirStream = readdir(inDir)) != NULL){
 		sprintf(path, "%s/%s", dirPath, dirStream->d_name);
+		char n[200];
 
 		if (lstat(path, &fileStat) < 0){
 			fprintf(stderr, "Error:: %s.\n", strerror(errno));
@@ -37,9 +38,9 @@ int explore_directory(const char* dirPath, const char* filePath){
 		}
 
 		if(S_ISREG(fileStat.st_mode)){
-			output = fopen(filePath,"a");
+			/*output = fopen(filePath,"a");
 			fprintf(output,"%s\n",path);
-			fclose(output);
+			fclose(output);*/
 
 			// TODO Tentar usar o open()
 			/*int f = open(filePath, O_RDWR | O_APPEND | O_CREAT , S_IRUSR | S_IWUSR | S_IXUSR);
