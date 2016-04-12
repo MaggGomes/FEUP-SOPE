@@ -8,58 +8,85 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 
 #define BUF_LENGTH 512
 
-int main(int argc, char *argv[]){
+int explore_directory(const char* dirPath, const char* filePath){
+
+	struct dirent *dirStream;
+	struct stat fileStat;
 	pid_t pid;
-	DIR * inDir = opendir(argv[1]);
-	struct dirent *tempDir	= readdir(inDir);
-	struct stat stat_buf;
-	char diretorio[BUF_LENGTH];
+	DIR * inDir;
+	char path[BUF_LENGTH];
+	int status;
 	FILE * output;
 
-	if(argc != 2){
-		printf("Invalid Arguments");
+	if((inDir = opendir(dirPath)) == NULL){
+		fprintf(stderr, "Error:: Couldn't open the directory <%s>.\n", dirPath);
 		return 1;
 	}
 
-	if(inDir == NULL){
-		printf("Invalid Directory");
-		return 1;
-	}
+	while((dirStream = readdir(inDir)) != NULL){
+		sprintf(path, "%s/%s", dirPath, dirStream->d_name);
 
-	while((tempDir = readdir(inDir)) != NULL){
-		sprintf(diretorio, "%s/%s", argv[1], tempDir->d_name);
+		if (lstat(path, &fileStat) < 0){
+			fprintf(stderr, "Error:: %s.\n", strerror(errno));
+			closedir(inDir);
+			return 2;
+		}
 
-		if (lstat(diretorio, &stat_buf) < 0){
-			perror(tempDir->d_name);
-      closedir(inDir);
-      return 1;
-    }
-
-		if(S_ISREG(stat_buf.st_mode)){
-			output = fopen("./files.txt","a");
-			fprintf(output,"%s\n",diretorio);
+		if(S_ISREG(fileStat.st_mode)){
+			output = fopen(filePath,"a");
+			fprintf(output,"%s\n",path);
 			fclose(output);
-		}else if ((S_ISDIR(stat_buf.st_mode)) && strcmp(tempDir->d_name,".") && strcmp(tempDir->d_name,"..")){
+
+			// TODO Tentar usar o open()
+			/*int f = open(filePath, O_RDWR | O_APPEND | O_CREAT , S_IRUSR | S_IWUSR | S_IXUSR);
+			dup2(f,STDOUT_FILENO);
+			printf("%s\n", path);
+			close(f);*/
+		}
+
+
+		// Avoids open current and parent directorys
+		else if ((S_ISDIR(fileStat.st_mode)) && strcmp(dirStream->d_name,".")!=0
+				&& strcmp(dirStream->d_name,"..")!=0){
 
 			pid = fork();
 
-			if(pid < 0){
-				printf("Fork failed");
-				return 1;
-			}else if (pid == 0) {
-				output = fopen("./files.txt","a");
-				fprintf(output,"%s\n",diretorio);
-				fclose(output);
-				execl("lsdir", "lsdir", (diretorio), NULL);
-				closedir(inDir);
-				return 0;
+			if(pid == -1){
+				fprintf(stderr, "Error: Fork failed!\n");
+				return 3;
+			}else if (pid == 0) { // child
+				explore_directory(path, filePath);
+				return 4;
+			}
+
+			else{ // parent
+				if (waitpid(pid, &status, 0) == -1)
+					fprintf(stderr, "Error:: %s.\n", strerror(errno));
 			}
 		}
 	}
 
 	closedir(inDir);
+
 	return 0;
 }
+
+int main(int argc, char *argv[]){
+
+	// TODO decidir se no ficheiros.txt se imprime o path das pastas ou se apenas dos ficheiros
+
+	if (argc != 3)
+		fprintf(stderr, "ERROR:: Wrong number of arguments. Please call as follows: "
+				"lsdir <directory path> <save file path>.\n");
+
+	// Clears the file where the
+	open(argv[2], O_TRUNC);
+	explore_directory(argv[1], argv[2]);
+
+	return 0;
+}
+
