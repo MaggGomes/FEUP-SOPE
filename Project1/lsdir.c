@@ -43,7 +43,7 @@ int explore_directory(int file, const char* dirPath, const char* filePath){
 
 	if((inDir = opendir(dirPath)) == NULL){
 		fprintf(stderr, "Couldn't open the directory <%s>.\n", dirPath);
-		exit(2);
+		exit(1);
 	}
 
 	while((dirStream = readdir(inDir)) != NULL){
@@ -52,11 +52,12 @@ int explore_directory(int file, const char* dirPath, const char* filePath){
 		if (lstat(path, &fileStat) < 0){
 			fprintf(stderr, "%s.\n", strerror(errno));
 			closedir(inDir);
-			exit(3);
+			exit(2);
 		}
 
-		// Verifies if is a regular file
+		// Verifies if it's a regular file
 		if(S_ISREG(fileStat.st_mode)){
+			// Name - path - date - size - permissions
 			sprintf(buffer,"%-20s %40s %d %d %d\n", dirStream->d_name, path, (int) fileStat.st_mtime, (int) fileStat.st_size, (int) fileStat.st_mode);
 			write(file, buffer, strlen(buffer));
 		}
@@ -69,15 +70,17 @@ int explore_directory(int file, const char* dirPath, const char* filePath){
 
 			if(pid == -1){
 				fprintf(stderr, "Fork failed!\n");
-				exit(4);
-			}else if (pid == 0) { // child
+				exit(3);
+			}else if (pid == 0) { // Child
 				explore_directory(file, path, filePath);
-				exit(5);
+				exit(4);
 			}
 
-			else{ // parent
-				if (waitpid(pid, &status, 0) == -1)
+			else{ // Parent
+				if (waitpid(pid, &status, 0) == -1){
 					fprintf(stderr, "%s.\n", strerror(errno));
+					exit(5);
+				}
 			}
 		}
 	}

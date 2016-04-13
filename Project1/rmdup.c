@@ -12,11 +12,21 @@
 #define READ 0
 #define WRITE 1
 #define BUF_LENGTH 512
+#define BUFINFO_LENGTH 20
 
 const char* filePath = "./files.txt";
 const char* hlinksPath = "./hlinks.txt";
 
+typedef struct {
+	char name[BUF_LENGTH];
+	char path[BUF_LENGTH];
+	char date[BUFINFO_LENGTH];
+	char permissions[BUFINFO_LENGTH];
+} fileInfo;
+
 int sort_file(const char* fileName);
+
+int equals_files(fileInfo * file1, fileInfo * file2);
 
 int main(int argc, char* argv[]) {
 
@@ -38,17 +48,14 @@ int main(int argc, char* argv[]) {
 		exit(3);
 	}
 
-	else if (pid == 0) { // child
+	else if (pid == 0) { // Child
 		// Starts a new process, executing lsdir program on it
 		if (execlp("./lsdir", "lsdir", argv[1], filePath, NULL) == -1){
 			fprintf(stderr, "execlp error: %s", strerror(errno));
 			exit(4);
 		}
-
-		// Line below only is executed if lsdir fails to execute
-		fprintf(stderr, "Can't execute lsdir: %s.\n", strerror(errno));
 	}
-	else { // parent
+	else { // Parent
 		if (waitpid(pid, &status, 0) == -1){
 			fprintf(stderr, "%s.\n", strerror(errno));
 			exit(5);
@@ -69,36 +76,37 @@ int sort_file(const char* fileName)
 
 	if (pipe(fd) != 0) {
 		fprintf(stderr, "Pipe error,\n");
-		exit(7);
+		exit(1);
 	}
 
 	if ((pid = fork()) == -1) {
 		fprintf(stderr, "Fork failed!\n");
-		exit(8);
+		exit(2);
 	}
 
-	else if (pid == 0) { // child
+	else if (pid == 0) { // Child
 		close(fd[READ]); // Closes reading side
 
 		if ((file = open(fileName, O_RDONLY, S_IRWXU)) == -1){
 			fprintf(stderr, "Failed to open %s.", fileName);
-			exit(9);
+			exit(3);
 		}
 
+		// Reads the information of each file and sends it through the pipe to the parent
 		while ((n = read(file, buffer, BUF_LENGTH)) != 0) {
 			if (write(fd[WRITE], buffer, n) != n) {
 				fprintf(stderr, "write error to pipe\n");
-				exit(10);
+				exit(4);
 			}
 		}
 
 		close(fd[WRITE]); // Closes writing side
 		close(file);
 	}
-	else { // parent
+	else { // Parent
 		if (waitpid(pid, &status, 0) == -1){
 			fprintf(stderr, "%s.\n", strerror(errno));
-			exit(11);
+			exit(5);
 		}
 
 		close(fd[WRITE]); // Closes writing side
@@ -107,13 +115,13 @@ int sort_file(const char* fileName)
 
 		if ((file = open(fileName, O_RDWR | O_CREAT , S_IRWXU)) == -1){
 			fprintf(stderr, "Failed to create %s.", fileName);
-			exit(12);
+			exit(6);
 		}
 
 		dup2(file, STDOUT_FILENO);
 		if (execlp("sort", "sort", NULL) == -1){
 			fprintf(stderr, "execlp error: %s", strerror(errno));
-			exit(13);
+			exit(7);
 		}
 
 		close(file);
