@@ -27,42 +27,53 @@ typedef struct {
 
 int sort_file(const char* fileName);
 
+int check_dupfiles(const char* filePath);
+
 int equals_files(fileInfo * file1, fileInfo * file2);
 
-int main(int argc, char* argv[]) {
+fileInfo* load_file(char* WfileString);
 
+int main(int argc, char* argv[]) {
+	// TODO - Numerar os exits de todas as funções
 	pid_t pid = fork();
 	int status;
 
-	if (argc < 2 ){
-		fprintf(stderr, "Invalid number of arguments. Did you forget to mention the <directory path> ? Usage: %s <directory path>\n", argv[0]);
-		exit(1);
-	}
-
-	else if (argc > 2 ){
+	if (argc != 2 ){
 		fprintf(stderr, "Invalid number of arguments. Usage: %s <directory path>\n", argv[0]);
-		exit(2);
+		exit(1);
 	}
 
 	if (pid == -1) {
 		fprintf(stderr, "Fork failed!\n");
-		exit(3);
+		exit(2);
 	}
 
 	else if (pid == 0) { // Child
 		// Starts a new process, executing lsdir program on it
 		if (execlp("./lsdir", "lsdir", argv[1], filePath, NULL) == -1){
 			fprintf(stderr, "execlp error: %s", strerror(errno));
-			exit(4);
+			exit(3);
 		}
 	}
 	else { // Parent
 		if (waitpid(pid, &status, 0) == -1){
 			fprintf(stderr, "%s.\n", strerror(errno));
-			exit(5);
+			exit(4);
 		}
 
 		sort_file(filePath);
+
+		//TODO para debugging - apagar
+		/*char line[BUF_LENGTH];
+		FILE* f= fopen(filePath, "r");
+		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
+
+		fclose(f);
+		load_file(line);*/
 	}
 
 	return 0;
@@ -131,6 +142,34 @@ int sort_file(const char* fileName)
 	return 0;
 }
 
+int check_dupfiles(const char* filePath){
+
+	FILE * f;
+	/*char line[256];
+			FILE* f= fopen(filePath, "r");
+			fgets(line, sizeof(line), f);
+			fclose(f);
+			printf("%s", line);
+			load_file(line);*/
+
+	if ((f = fopen(filePath, "r")) == NULL){
+		fprintf(stderr, "Couldn't open %s.", filePath);
+		fclose(f);
+		exit(1);
+	}
+
+
+
+
+
+
+
+
+	fclose(f);
+
+	return 0;
+}
+
 int equals_files(fileInfo * file1, fileInfo * file2){
 
 	FILE *f1, *f2;
@@ -141,13 +180,13 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		return -1; // Files are different
 
 	if ((f1 = fopen(file1->path, "r")) == NULL){
-		fprintf(stderr, "Couldn't acess %s.", file1->path);
+		fprintf(stderr, "Couldn't access %s.", file1->path);
 		fclose(f1);
 		exit(1);
 	}
 
 	if ((f2 = fopen(file2->path, "r")) == NULL){
-		fprintf(stderr, "Couldn't acess %s.", file2->path);
+		fprintf(stderr, "Couldn't access %s.", file2->path);
 		fclose(f1);
 		fclose(f2);
 		exit(1);
@@ -162,4 +201,37 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		return -1; // Files's Content are different from each other
 
 	return 0;
+}
+
+fileInfo* load_file(char* WfileString){
+	fileInfo* file = (fileInfo *) malloc(sizeof(2* BUF_LENGTH+ 3 * BUFINFO_LENGTH));
+	int i = 0;
+	const char space[2] = " \n";
+	char *fileString = strtok(WfileString, space);
+
+	strcpy(file->name, fileString);
+	fileString  = strtok(NULL, space);
+	while( fileString  != NULL )
+	{
+		if (i == 0)
+			strcpy(file->path, fileString);
+		else if (i == 1)
+			strcpy(file->date, fileString);
+		else if (i == 2)
+			strcpy(file->size, fileString);
+		else if (i == 3)
+			strcpy(file->permissions, fileString);
+
+		fileString  = strtok(NULL, space);
+		i++;
+	}
+
+	// TODO - apagar - debugging
+	printf("%s\n", file->name);
+	printf("%s\n", file->path);
+	printf("%s\n", file->date);
+	printf("%s\n", file->size);
+	printf("%s\n", file->permissions);
+
+	return file;
 }
