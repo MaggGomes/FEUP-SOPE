@@ -22,6 +22,7 @@ typedef struct {
 	char path[BUF_LENGTH];
 	char date[BUFINFO_LENGTH];
 	char permissions[BUFINFO_LENGTH];
+	char size[BUFINFO_LENGTH];
 } fileInfo;
 
 int sort_file(const char* fileName);
@@ -126,6 +127,39 @@ int sort_file(const char* fileName)
 
 		close(file);
 	}
+
+	return 0;
+}
+
+int equals_files(fileInfo * file1, fileInfo * file2){
+
+	FILE *f1, *f2;
+	char c1, c2;
+
+	if (strcmp(file1->name, file2->name) != 0 || strcmp(file1->permissions, file2->permissions)!=0
+			|| strcmp(file1->size, file2->size)!=0)
+		return -1; // Files are different
+
+	if ((f1 = fopen(file1->path, "r")) == NULL){
+		fprintf(stderr, "Couldn't acess %s.", file1->path);
+		fclose(f1);
+		exit(1);
+	}
+
+	if ((f2 = fopen(file2->path, "r")) == NULL){
+		fprintf(stderr, "Couldn't acess %s.", file2->path);
+		fclose(f1);
+		fclose(f2);
+		exit(1);
+	}
+
+	while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
+		if (c1 != c2)
+			return -1; // Files's Content are different from each other
+	}
+
+	if (c1 != c2)
+		return -1; // Files's Content are different from each other
 
 	return 0;
 }
