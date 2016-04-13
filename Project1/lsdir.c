@@ -22,13 +22,10 @@ int explore_directory(const char* dirPath, const char* filePath){
 	int status;
 	FILE * output;
 
-	printf("%s\n", dirPath);
 	if((inDir = opendir(dirPath)) == NULL){
 		fprintf(stderr, "Error:: Couldn't open the directory <%s>.\n", dirPath);
 		exit(1);
 	}
-
-	printf("entrou\n");
 
 	while((dirStream = readdir(inDir)) != NULL){
 		sprintf(path, "%s/%s", dirPath, dirStream->d_name);
@@ -75,16 +72,12 @@ int explore_directory(const char* dirPath, const char* filePath){
 
 int main(int argc, char *argv[]){
 
-	// TODO decidir se no ficheiros.txt se imprime o path das pastas ou se apenas dos ficheiros
-
 	if (argc != 3)
-		fprintf(stderr, "ERROR:: Wrong number of arguments. Please call as follows: "
-				"lsdir <directory path> <save file path>.\n");
+		fprintf(stderr, "ERROR:: Wrong number of arguments. Usage: %s <directory path> <save file path>.\n", argv[0]);
 
 	// Clears the file where the files will be saved
 	open(argv[2], O_TRUNC);
 	explore_directory(argv[1], argv[2]);
-	printf("%s\n%s\n", argv[1], argv[2]);
 
 	return 0;
 }
