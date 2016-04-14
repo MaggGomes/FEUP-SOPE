@@ -71,9 +71,6 @@ int main(int argc, char* argv[]) {
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
 
 		fileInfo a = load_file(line);
 		fgets(line, BUF_LENGTH, f);
@@ -88,8 +85,9 @@ int main(int argc, char* argv[]) {
 
 
 
+
 		fclose(f);
-		//check_dupfiles(fil;ePath);
+		//check_dupfiles(filePath);
 	}
 
 	return 0;
@@ -235,6 +233,8 @@ int check_dupfiles(const char* filePath){
 
 int equals_files(fileInfo * file1, fileInfo * file2){
 
+	// TODO não está a ler os ficheiros corretamente
+
 	FILE *f1, *f2;
 	char c1, c2;
 
@@ -255,24 +255,32 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		exit(1);
 	}
 
-	while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
-		printf("%s; %s\n", c1, c2);
+	/*while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
 		if (c1 != c2)
 			return -1; // Files's Content are different from each other
 	}
 
 	if (c1 != c2)
-		return -1; // Files's Content are different from each other
+		return -1; // Files's Content are different from each other*/
 
-	if (c1 == c2)
-		return 1;
-	else
-		return 0;
+
+	do
+	{
+		c1 = getc(f1);
+		c2 = getc(f2);
+	}  while ((c1 != EOF) && (c2 != EOF) && (c1 == c2));
 
 	fclose(f1);
 	fclose(f2);
 
-	return 0;
+	if (c1 == c2)
+		return 0;
+	else
+		return 1;
+
+
+
+	//return 0;
 }
 
 fileInfo load_file(char* WfileString){
@@ -319,27 +327,7 @@ fileInfo load_file(char* WfileString){
 
 		fileString  = strtok(NULL, space);
 		i++;
-	}
-
-
-	/*token = strtok(buffer, "/");
-	    strcpy(fe->name, token);
-
-	    token = strtok(NULL, " ");
-	    strcpy(fe->permissions, token);
-
-	    token = strtok(NULL, " ");
-	    strcpy(fe->date, token);
-
-	    token = strtok(NULL, "\n");
-	    strcpy(fe->path, token);*/
-
-	// TODO - apagar - debugging
-	//printf("%s\n", file->name);
-	/*printf("%s\n", file->path);
-	//printf("%s\n", file->date);
-	//printf("%s\n", file->size);
-	//printf("%s\n", file->permissions);*/
+	}*/
 
 	return file;
 }
