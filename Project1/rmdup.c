@@ -73,11 +73,37 @@ int main(int argc, char* argv[]) {
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
+
+		/*fileInfo * a = load_file(line);
+		fgets(line, BUF_LENGTH, f);
+		fileInfo * b = load_file(line);
+		printf("%s\n", a->path);
+		printf("%s\n", b->path);
+		if (equals_files(a, b) == 0)
+			printf("sim\n");
+		else
+			printf("nao\n");*/
+
+		/*fileInfo * a, * b;
+		a = (fileInfo *) malloc(sizeof(fileInfo*));
+		b = (fileInfo *) malloc(sizeof(fileInfo*));*/
+		/*printf("%s\n", load_file(line)->path);
+		fgets(line, BUF_LENGTH, f);
+		printf("%s\n", load_file(line)->path);*/
+		/*a = load_file(line);
+		fgets(line, BUF_LENGTH, f);
+		b = load_file(line);
+		printf("%s\n", a->path);
+		printf("%s\n", b->path);*/
+
+
+		fileInfo a, b;
+		&a = load_file(line);
+
 
 		fclose(f);
-		load_file(line);
-
-		//check_dupfiles(filePath);
+		//check_dupfiles(fil;ePath);
 	}
 
 	return 0;
@@ -85,7 +111,8 @@ int main(int argc, char* argv[]) {
 
 int sort_file(const char* fileName)
 {
-	int n, fd[2];
+	// TODO  corrigir esta parte
+	/*int n, fd[2];
 		int file, status;
 		char buffer[BUF_LENGTH];
 		pid_t pid;
@@ -143,27 +170,75 @@ int sort_file(const char* fileName)
 			close(file);
 		}
 
-		return 0;
+		return 0;*/
 
+	int fd[2];
+	char buf[200];
+	int nr, nw;
+	pid_t pid;
+	pid_t pid2;
+
+	int std_in = dup(STDIN_FILENO);
+	int std_out = dup(STDOUT_FILENO);
+
+	if (pipe(fd) != 0) {
+		exit(1);
+	}
+
+	if ((pid = fork()) < 0) {
+		perror("fork");
+		exit(2);
+	}
+
+	if (pid == 0) {
+
+		close(fd[READ]);
+		int f = open(fileName, O_RDONLY, S_IRUSR | S_IWUSR | S_IXUSR);
+		while ((nr = read(f, buf, 200)) > 0) {
+			if ((nw = write(fd[WRITE], buf, nr)) <= 0 || nw != nr) {
+				exit(3);
+			}
+		}
+		close(f);
+		close(fd[WRITE]);
+		exit(0);
+	}
+	else {
+		waitpid(pid, NULL, 0);
+		close(fd[WRITE]);
+		dup2(fd[READ], STDIN_FILENO);
+		close(fd[READ]);
+		int f = open("files.txt", O_RDWR);
+		dup2(f, STDOUT_FILENO);
+		if((pid2 = fork()) == 0)
+			execlp("sort", "sort", (char*) NULL);
+		waitpid(pid2, NULL, 0);
+		close(f);
+	}
+
+	dup2(std_in, STDIN_FILENO);
+	dup2(std_out, STDOUT_FILENO);
+	return 0;
 }
 
 int check_dupfiles(const char* filePath){
-	fileInfo* temp;
+
+	// TODO falta terminar
+
 	char line[256];
-	FILE* f= fopen(filePath, "r");
+	FILE* f;
+
+	if ((f = fopen(filePath, "r")) == NULL){
+		fprintf(stderr, "Couldn't open %s.", filePath);
+		fclose(f);
+		exit(1);
+	}
+
 	while (fgets(line, sizeof(line), f) != NULL) {
-		//printf("%s", line);
-		temp = load_file(line);
+		printf("%s", line);
 	};
 
 	fclose(f);
-
-	/*
-	if ((f = fopen(filePath, "r")) == NULL){
-	fprintf(stderr, "Couldn't open %s.", filePath);
-	fclose(f);
-	exit(1);
-}*/
 
 
 
@@ -174,39 +249,45 @@ int check_dupfiles(const char* filePath){
 
 int equals_files(fileInfo * file1, fileInfo * file2){
 
-	FILE *f1, *f2;
-	char c1, c2;
+	//FILE *f1, *f2;
+	//char c1, c2;
 
-	if (strcmp(file1->name, file2->name) != 0 || strcmp(file1->permissions, file2->permissions)!=0
-			|| strcmp(file1->size, file2->size)!=0)
+	// TODO REMOVER
+	printf("%s\n", file1->path);
+	printf("%s\n", file2->path);
+	printf("%s\n", file1->size);
+	printf("%s\n", file2->size);
+	if (strcmp(file1->name, file2->name) != 0 || strcmp(file1->permissions, file2->permissions)!=0)
 		return -1; // Files are different
 
-	if ((f1 = fopen(file1->path, "r")) == NULL){
+
+	// TODO descomentar isto
+	/*if ((f1 = fopen(file1->path, "r")) == NULL){
 		fprintf(stderr, "Couldn't access %s.", file1->path);
 		fclose(f1);
 		exit(1);
-	}
+	}*/
 
-	if ((f2 = fopen(file2->path, "r")) == NULL){
+	/*if ((f2 = fopen(file2->path, "r")) == NULL){
 		fprintf(stderr, "Couldn't access %s.", file2->path);
 		fclose(f1);
 		fclose(f2);
 		exit(1);
-	}
+	}*/
 
-	while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
+	/*while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
 		if (c1 != c2)
 			return -1; // Files's Content are different from each other
 	}
 
 	if (c1 != c2)
-		return -1; // Files's Content are different from each other
+		return -1; // Files's Content are different from each other*/
 
 	return 0;
 }
 
 fileInfo* load_file(char* WfileString){
-	fileInfo* file = (fileInfo *) malloc(sizeof(2* BUF_LENGTH+ 3 * BUFINFO_LENGTH));
+	fileInfo* file = (fileInfo *) malloc(sizeof(fileInfo*));
 	int i = 0;
 	const char space[2] = " \n";
 	char *fileString = strtok(WfileString, space);
@@ -228,12 +309,25 @@ fileInfo* load_file(char* WfileString){
 		i++;
 	}
 
+
+	/*token = strtok(buffer, "/");
+	    strcpy(fe->name, token);
+
+	    token = strtok(NULL, " ");
+	    strcpy(fe->permissions, token);
+
+	    token = strtok(NULL, " ");
+	    strcpy(fe->date, token);
+
+	    token = strtok(NULL, "\n");
+	    strcpy(fe->path, token);*/
+
 	// TODO - apagar - debugging
-	printf("%s\n", file->name);
+	//printf("%s\n", file->name);
 	printf("%s\n", file->path);
-	printf("%s\n", file->date);
-	printf("%s\n", file->size);
-	printf("%s\n", file->permissions);
+	//printf("%s\n", file->date);
+	//printf("%s\n", file->size);
+	//printf("%s\n", file->permissions);
 
 	return file;
 }
