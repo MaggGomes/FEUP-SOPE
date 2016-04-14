@@ -35,6 +35,7 @@ fileInfo* load_file(char* WfileString);
 
 int main(int argc, char* argv[]) {
 	// TODO - Numerar os exits de todas as funções
+	check_dupfiles(filePath);
 	pid_t pid = fork();
 	int status;
 
@@ -143,29 +144,30 @@ int sort_file(const char* fileName)
 }
 
 int check_dupfiles(const char* filePath){
-
-	FILE * f;
-	/*char line[256];
-			FILE* f= fopen(filePath, "r");
-			fgets(line, sizeof(line), f);
-			fclose(f);
-			printf("%s", line);
-			load_file(line);*/
-
-	if ((f = fopen(filePath, "r")) == NULL){
-		fprintf(stderr, "Couldn't open %s.", filePath);
-		fclose(f);
-		exit(1);
-	}
-
-
-
-
-
-
-
-
+	fileInfo* temp;
+	char line[256];
+	FILE* f= fopen(filePath, "r");
+	while (fgets(line, sizeof(line), f) != NULL) {
+		printf("%s", line);
+		temp = load_file(line);
+	};
 	fclose(f);
+
+	/*
+	if ((f = fopen(filePath, "r")) == NULL){
+	fprintf(stderr, "Couldn't open %s.", filePath);
+	fclose(f);
+	exit(1);
+}*/
+
+
+
+
+
+
+
+
+	//fclose(f);
 
 	return 0;
 }
@@ -176,8 +178,8 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 	char c1, c2;
 
 	if (strcmp(file1->name, file2->name) != 0 || strcmp(file1->permissions, file2->permissions)!=0
-			|| strcmp(file1->size, file2->size)!=0)
-		return -1; // Files are different
+	|| strcmp(file1->size, file2->size)!=0)
+	return -1; // Files are different
 
 	if ((f1 = fopen(file1->path, "r")) == NULL){
 		fprintf(stderr, "Couldn't access %s.", file1->path);
@@ -194,11 +196,11 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 
 	while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
 		if (c1 != c2)
-			return -1; // Files's Content are different from each other
+		return -1; // Files's Content are different from each other
 	}
 
 	if (c1 != c2)
-		return -1; // Files's Content are different from each other
+	return -1; // Files's Content are different from each other
 
 	return 0;
 }
@@ -214,24 +216,24 @@ fileInfo* load_file(char* WfileString){
 	while( fileString  != NULL )
 	{
 		if (i == 0)
-			strcpy(file->path, fileString);
+		strcpy(file->path, fileString);
 		else if (i == 1)
-			strcpy(file->date, fileString);
+		strcpy(file->date, fileString);
 		else if (i == 2)
-			strcpy(file->size, fileString);
+		strcpy(file->size, fileString);
 		else if (i == 3)
-			strcpy(file->permissions, fileString);
+		strcpy(file->permissions, fileString);
 
 		fileString  = strtok(NULL, space);
 		i++;
 	}
 
 	// TODO - apagar - debugging
-	printf("%s\n", file->name);
+/*	printf("%s\n", file->name);
 	printf("%s\n", file->path);
-	printf("%s\n", file->date);
+	printf("%s\n", file->date);*/
 	printf("%s\n", file->size);
-	printf("%s\n", file->permissions);
+	//printf("%s\n", file->permissions);
 
 	return file;
 }
