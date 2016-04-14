@@ -255,9 +255,6 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		exit(1);
 	}
 
-	c1 = getc(f1);
-	c2 = getc(f2);
-	printf("%s; %s\n", c1, c2);
 	while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
 		printf("%s; %s\n", c1, c2);
 		if (c1 != c2)
