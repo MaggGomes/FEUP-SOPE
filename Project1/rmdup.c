@@ -31,7 +31,7 @@ int check_dupfiles(const char* filePath);
 
 int equals_files(fileInfo * file1, fileInfo * file2);
 
-fileInfo* load_file(char* WfileString);
+fileInfo load_file(char* WfileString);
 
 int main(int argc, char* argv[]) {
 	// TODO - Numerar os exits de todas as funções
@@ -75,31 +75,17 @@ int main(int argc, char* argv[]) {
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
 
-		/*fileInfo * a = load_file(line);
+		fileInfo a = load_file(line);
 		fgets(line, BUF_LENGTH, f);
-		fileInfo * b = load_file(line);
-		printf("%s\n", a->path);
-		printf("%s\n", b->path);
-		if (equals_files(a, b) == 0)
+		fileInfo b = load_file(line);
+		printf("%s\n", a.path);
+		printf("%s\n", b.path);
+		if (equals_files(&a, &b) == 0)
 			printf("sim\n");
 		else
-			printf("nao\n");*/
-
-		/*fileInfo * a, * b;
-		a = (fileInfo *) malloc(sizeof(fileInfo*));
-		b = (fileInfo *) malloc(sizeof(fileInfo*));*/
-		/*printf("%s\n", load_file(line)->path);
-		fgets(line, BUF_LENGTH, f);
-		printf("%s\n", load_file(line)->path);*/
-		/*a = load_file(line);
-		fgets(line, BUF_LENGTH, f);
-		b = load_file(line);
-		printf("%s\n", a->path);
-		printf("%s\n", b->path);*/
+			printf("nao\n");
 
 
-		fileInfo a, b;
-		&a = load_file(line);
 
 
 		fclose(f);
@@ -249,45 +235,74 @@ int check_dupfiles(const char* filePath){
 
 int equals_files(fileInfo * file1, fileInfo * file2){
 
-	//FILE *f1, *f2;
-	//char c1, c2;
+	FILE *f1, *f2;
+	char c1, c2;
 
-	// TODO REMOVER
-	printf("%s\n", file1->path);
-	printf("%s\n", file2->path);
-	printf("%s\n", file1->size);
-	printf("%s\n", file2->size);
-	if (strcmp(file1->name, file2->name) != 0 || strcmp(file1->permissions, file2->permissions)!=0)
+	if (strcmp(file1->name, file2->name) != 0 || strcmp(file1->permissions, file2->permissions)!=0
+			|| strcmp(file1->size, file2->size) != 0 )
 		return -1; // Files are different
 
-
-	// TODO descomentar isto
-	/*if ((f1 = fopen(file1->path, "r")) == NULL){
+	if ((f1 = fopen(file1->path, "r")) == NULL){
 		fprintf(stderr, "Couldn't access %s.", file1->path);
 		fclose(f1);
 		exit(1);
-	}*/
+	}
 
-	/*if ((f2 = fopen(file2->path, "r")) == NULL){
+	if ((f2 = fopen(file2->path, "r")) == NULL){
 		fprintf(stderr, "Couldn't access %s.", file2->path);
 		fclose(f1);
 		fclose(f2);
 		exit(1);
-	}*/
+	}
 
-	/*while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
+	c1 = getc(f1);
+	c2 = getc(f2);
+	printf("%s; %s\n", c1, c2);
+	while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
+		printf("%s; %s\n", c1, c2);
 		if (c1 != c2)
 			return -1; // Files's Content are different from each other
 	}
 
 	if (c1 != c2)
-		return -1; // Files's Content are different from each other*/
+		return -1; // Files's Content are different from each other
+
+	if (c1 == c2)
+		return 1;
+	else
+		return 0;
+
+	fclose(f1);
+	fclose(f2);
 
 	return 0;
 }
 
-fileInfo* load_file(char* WfileString){
-	fileInfo* file = (fileInfo *) malloc(sizeof(fileInfo*));
+fileInfo load_file(char* WfileString){
+
+	fileInfo file;
+	int i = 0;
+	const char space[2] = " \n";
+	char *fileString = strtok(WfileString, space);
+
+	strcpy(file.name, fileString);
+	fileString  = strtok(NULL, space);
+	while( fileString  != NULL )
+	{
+		if (i == 0)
+			strcpy(file.path, fileString);
+		else if (i == 1)
+			strcpy(file.date, fileString);
+		else if (i == 2)
+			strcpy(file.size, fileString);
+		else if (i == 3)
+			strcpy(file.permissions, fileString);
+
+		fileString  = strtok(NULL, space);
+		i++;
+	}
+
+	/*fileInfo* file = (fileInfo *) malloc(sizeof(fileInfo*));
 	int i = 0;
 	const char space[2] = " \n";
 	char *fileString = strtok(WfileString, space);
@@ -324,10 +339,10 @@ fileInfo* load_file(char* WfileString){
 
 	// TODO - apagar - debugging
 	//printf("%s\n", file->name);
-	printf("%s\n", file->path);
+	/*printf("%s\n", file->path);
 	//printf("%s\n", file->date);
 	//printf("%s\n", file->size);
-	//printf("%s\n", file->permissions);
+	//printf("%s\n", file->permissions);*/
 
 	return file;
 }
