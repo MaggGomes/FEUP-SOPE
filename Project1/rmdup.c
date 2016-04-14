@@ -35,7 +35,6 @@ fileInfo* load_file(char* WfileString);
 
 int main(int argc, char* argv[]) {
 	// TODO - Numerar os exits de todas as funções
-	check_dupfiles(filePath);
 	pid_t pid = fork();
 	int status;
 
@@ -65,8 +64,10 @@ int main(int argc, char* argv[]) {
 		sort_file(filePath);
 
 		//TODO para debugging - apagar
-		/*char line[BUF_LENGTH];
+		char line[BUF_LENGTH];
 		FILE* f= fopen(filePath, "r");
+		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
@@ -74,7 +75,9 @@ int main(int argc, char* argv[]) {
 		fgets(line, BUF_LENGTH, f);
 
 		fclose(f);
-		load_file(line);*/
+		load_file(line);
+
+		//check_dupfiles(filePath);
 	}
 
 	return 0;
@@ -83,64 +86,65 @@ int main(int argc, char* argv[]) {
 int sort_file(const char* fileName)
 {
 	int n, fd[2];
-	int file, status;
-	char buffer[BUF_LENGTH];
-	pid_t pid;
+		int file, status;
+		char buffer[BUF_LENGTH];
+		pid_t pid;
 
-	if (pipe(fd) != 0) {
-		fprintf(stderr, "Pipe error,\n");
-		exit(1);
-	}
-
-	if ((pid = fork()) == -1) {
-		fprintf(stderr, "Fork failed!\n");
-		exit(2);
-	}
-
-	else if (pid == 0) { // Child
-		close(fd[READ]); // Closes reading side
-
-		if ((file = open(fileName, O_RDONLY, S_IRWXU)) == -1){
-			fprintf(stderr, "Failed to open %s.", fileName);
-			exit(3);
+		if (pipe(fd) != 0) {
+			fprintf(stderr, "Pipe error,\n");
+			exit(1);
 		}
 
-		// Reads the information of each file and sends it through the pipe to the parent
-		while ((n = read(file, buffer, BUF_LENGTH)) != 0) {
-			if (write(fd[WRITE], buffer, n) != n) {
-				fprintf(stderr, "write error to pipe\n");
-				exit(4);
+		if ((pid = fork()) == -1) {
+			fprintf(stderr, "Fork failed!\n");
+			exit(2);
+		}
+
+		else if (pid == 0) { // Child
+			close(fd[READ]); // Closes reading side
+
+			if ((file = open(fileName, O_RDONLY, S_IRWXU)) == -1){
+				fprintf(stderr, "Failed to open %s.", fileName);
+				exit(3);
 			}
+
+			// Reads the information of each file and sends it through the pipe to the parent
+			while ((n = read(file, buffer, BUF_LENGTH)) != 0) {
+				if (write(fd[WRITE], buffer, n) != n) {
+					fprintf(stderr, "write error to pipe\n");
+					exit(4);
+				}
+			}
+
+			close(fd[WRITE]); // Closes writing side
+			close(file);
+		}
+		else { // Parent
+			if (waitpid(pid, &status, 0) == -1){
+				fprintf(stderr, "%s.\n", strerror(errno));
+				exit(5);
+			}
+
+			close(fd[WRITE]); // Closes writing side
+			dup2(fd[READ], STDIN_FILENO);
+			close(fd[READ]); // Closes reading side
+
+			if ((file = open(fileName, O_RDWR | O_CREAT , S_IRWXU)) == -1){
+				fprintf(stderr, "Failed to create %s.", fileName);
+				exit(6);
+			}
+
+			dup2(file, STDOUT_FILENO);
+			if (execlp("sort", "sort", NULL) == -1){
+				fprintf(stderr, "execlp error: %s", strerror(errno));
+				exit(7);
+			}
+
+			close(file);
 		}
 
-		close(fd[WRITE]); // Closes writing side
-		close(file);
-	}
-	else { // Parent
-		if (waitpid(pid, &status, 0) == -1){
-			fprintf(stderr, "%s.\n", strerror(errno));
-			exit(5);
-		}
+		return 0;
 
-		close(fd[WRITE]); // Closes writing side
-		dup2(fd[READ], STDIN_FILENO);
-		close(fd[READ]); // Closes reading side
-
-		if ((file = open(fileName, O_RDWR | O_CREAT , S_IRWXU)) == -1){
-			fprintf(stderr, "Failed to create %s.", fileName);
-			exit(6);
-		}
-
-		dup2(file, STDOUT_FILENO);
-		if (execlp("sort", "sort", NULL) == -1){
-			fprintf(stderr, "execlp error: %s", strerror(errno));
-			exit(7);
-		}
-
-		close(file);
-	}
-
-	return 0;
 }
 
 int check_dupfiles(const char* filePath){
@@ -148,9 +152,10 @@ int check_dupfiles(const char* filePath){
 	char line[256];
 	FILE* f= fopen(filePath, "r");
 	while (fgets(line, sizeof(line), f) != NULL) {
-		printf("%s", line);
+		//printf("%s", line);
 		temp = load_file(line);
 	};
+
 	fclose(f);
 
 	/*
@@ -164,11 +169,6 @@ int check_dupfiles(const char* filePath){
 
 
 
-
-
-
-	//fclose(f);
-
 	return 0;
 }
 
@@ -178,8 +178,8 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 	char c1, c2;
 
 	if (strcmp(file1->name, file2->name) != 0 || strcmp(file1->permissions, file2->permissions)!=0
-	|| strcmp(file1->size, file2->size)!=0)
-	return -1; // Files are different
+			|| strcmp(file1->size, file2->size)!=0)
+		return -1; // Files are different
 
 	if ((f1 = fopen(file1->path, "r")) == NULL){
 		fprintf(stderr, "Couldn't access %s.", file1->path);
@@ -196,11 +196,11 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 
 	while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
 		if (c1 != c2)
-		return -1; // Files's Content are different from each other
+			return -1; // Files's Content are different from each other
 	}
 
 	if (c1 != c2)
-	return -1; // Files's Content are different from each other
+		return -1; // Files's Content are different from each other
 
 	return 0;
 }
@@ -216,24 +216,24 @@ fileInfo* load_file(char* WfileString){
 	while( fileString  != NULL )
 	{
 		if (i == 0)
-		strcpy(file->path, fileString);
+			strcpy(file->path, fileString);
 		else if (i == 1)
-		strcpy(file->date, fileString);
+			strcpy(file->date, fileString);
 		else if (i == 2)
-		strcpy(file->size, fileString);
+			strcpy(file->size, fileString);
 		else if (i == 3)
-		strcpy(file->permissions, fileString);
+			strcpy(file->permissions, fileString);
 
 		fileString  = strtok(NULL, space);
 		i++;
 	}
 
 	// TODO - apagar - debugging
-/*	printf("%s\n", file->name);
+	printf("%s\n", file->name);
 	printf("%s\n", file->path);
-	printf("%s\n", file->date);*/
+	printf("%s\n", file->date);
 	printf("%s\n", file->size);
-	//printf("%s\n", file->permissions);
+	printf("%s\n", file->permissions);
 
 	return file;
 }
