@@ -21,7 +21,7 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "Wrong number of arguments. Usage: %s <directory path> <save file path>.\n", argv[0]);
 
 	if ((f = open(argv[2], O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, S_IRWXU)) == -1){
-		fprintf(stderr, "Failed to create %s.", argv[2]);
+		fprintf(stderr, "Failed to create %s.\n", argv[2]);
 		exit(1);
 	}
 

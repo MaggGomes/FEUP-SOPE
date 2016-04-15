@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 	else if (pid == 0) { // Child
 		// Starts a new process, executing lsdir program on it
 		if (execlp("./lsdir", "lsdir", argv[1], filePath, NULL) == -1){
-			fprintf(stderr, "execlp error: %s", strerror(errno));
+			fprintf(stderr, "execlp error: %s.\n", strerror(errno));
 			exit(3);
 		}
 
@@ -78,7 +78,7 @@ int sort_file(const char* fileName){
 
 	// Creates a pipe to be used between the parent and child processes
 	if (pipe(fd) != 0) {
-		fprintf(stderr, "Pipe error,\n");
+		fprintf(stderr, "Pipe error.\n");
 		exit(1);
 	}
 
@@ -91,14 +91,14 @@ int sort_file(const char* fileName){
 		close(fd[READ]); // Closes reading side
 
 		if ((f = open(fileName, O_RDONLY, S_IRWXU)) == -1){
-			fprintf(stderr, "Failed to open %s.", fileName);
+			fprintf(stderr, "Failed to open %s.\n", fileName);
 			exit(3);
 		}
 
 		// Reads the information of each file and sends it through the pipe to the parent
 		while ((n = read(f, buffer, BUF_LENGTH)) != 0) {
 			if (write(fd[WRITE], buffer, n) != n) {
-				fprintf(stderr, "Write error to pipe\n");
+				fprintf(stderr, "Write error to pipe.\n");
 				exit(4);
 			}
 		}
@@ -129,7 +129,7 @@ int sort_file(const char* fileName){
 			the sort will starting sorting from name and then, in case of equals names,
 			by date */
 			if (execlp("sort", "sort", "-o", fileName, NULL) == -1){
-				fprintf(stderr, "execlp error: %s", strerror(errno));
+				fprintf(stderr, "execlp error: %s.\n", strerror(errno));
 				exit(7);
 			}
 		}
@@ -154,13 +154,13 @@ int check_dupfiles(const char* filePath, char* directory){
 	fileInfo* files = (fileInfo*)malloc(0);
 
 	if ((f1 = fopen(filePath, "r")) == NULL){
-		fprintf(stderr, "Failed to open %s.", filePath);
+		fprintf(stderr, "Failed to open %s.\n", filePath);
 		fclose(f1);
 		exit(1);
 	}
 
 	if ((f2 = fopen(hlinks, "w")) == NULL){
-		fprintf(stderr, "Failed to open %s.", hlinks);
+		fprintf(stderr, "Failed to open %s.\n", hlinks);
 		fclose(f1);
 		fclose(f2);
 		exit(2);
@@ -208,13 +208,13 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		return -1; // Files are different
 
 	if ((f1 = fopen(file1->path, "r")) == NULL){
-		fprintf(stderr, "Failed to open %s.", file1->path);
+		fprintf(stderr, "Failed to open %s.\n", file1->path);
 		fclose(f1);
 		exit(1);
 	}
 
 	if ((f2 = fopen(file2->path, "r")) == NULL){
-		fprintf(stderr, "Failed to open %s.", file2->path);
+		fprintf(stderr, "Failed to open %s.\n", file2->path);
 		fclose(f1);
 		fclose(f2);
 		exit(2);
