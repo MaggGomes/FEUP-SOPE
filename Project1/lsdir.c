@@ -11,28 +11,28 @@
 
 #define BUF_LENGTH 512
 
-int explore_directory(int file, const char* dirPath, const char* filePath);
+int explore_directory(int f, const char* dirPath, const char* filePath);
 
 int main(int argc, char *argv[]){
 
-	int file;
+	int f;
 
 	if (argc != 3)
 		fprintf(stderr, "Wrong number of arguments. Usage: %s <directory path> <save file path>.\n", argv[0]);
 
-	if ((file = open(argv[2], O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, S_IRWXU)) == -1){
+	if ((f = open(argv[2], O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, S_IRWXU)) == -1){
 		fprintf(stderr, "Failed to create %s.", argv[2]);
 		exit(1);
 	}
 
-	explore_directory(file, argv[1], argv[2]);
+	explore_directory(f, argv[1], argv[2]);
 
-	close(file);
+	close(f);
 
 	return 0;
 }
 
-int explore_directory(int file, const char* dirPath, const char* filePath){
+int explore_directory(int f, const char* dirPath, const char* filePath){
 
 	struct dirent *dirStream;
 	struct stat fileStat;
@@ -57,9 +57,9 @@ int explore_directory(int file, const char* dirPath, const char* filePath){
 
 		// Verifies if it's a regular file
 		if(S_ISREG(fileStat.st_mode)){
-			// Name - path - date - size - permissions
-			sprintf(buffer,"%-20s %40s %d %d %d\n", dirStream->d_name, path, (int) fileStat.st_mtime, (int) fileStat.st_size, (int) fileStat.st_mode);
-			write(file, buffer, strlen(buffer));
+			// Name - date - path - size - permissions
+			sprintf(buffer,"%s| %d %d %d %-40s\n", dirStream->d_name, (int) fileStat.st_mtime, (int) fileStat.st_size, (int) fileStat.st_mode, path);
+			write(f, buffer, strlen(buffer));
 		}
 
 		// Avoids open current and parent directorys
@@ -72,14 +72,14 @@ int explore_directory(int file, const char* dirPath, const char* filePath){
 				fprintf(stderr, "Fork failed!\n");
 				exit(3);
 			}else if (pid == 0) { // Child
-				explore_directory(file, path, filePath);
-				exit(4);
+				explore_directory(f, path, filePath);
+				exit(0);
 			}
 
 			else{ // Parent
 				if (waitpid(pid, &status, 0) == -1){
 					fprintf(stderr, "%s.\n", strerror(errno));
-					exit(5);
+					exit(4);
 				}
 			}
 		}

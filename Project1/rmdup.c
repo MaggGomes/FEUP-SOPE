@@ -15,7 +15,7 @@
 #define BUFINFO_LENGTH 20
 
 const char* filePath = "./files.txt";
-const char* hlinksPath = "./hlinks.txt";
+const char* hlinksPath = "/hlinks.txt";
 
 typedef struct {
 	char name[BUF_LENGTH];
@@ -23,18 +23,18 @@ typedef struct {
 	char date[BUFINFO_LENGTH];
 	char permissions[BUFINFO_LENGTH];
 	char size[BUFINFO_LENGTH];
+	int isDupFile; // 1 if is a duplicated file, 0 otherwise
 } fileInfo;
 
 int sort_file(const char* fileName);
 
-int check_dupfiles(const char* filePath);
+int check_dupfiles(const char* filePath, char* directory);
 
 int equals_files(fileInfo * file1, fileInfo * file2);
 
-fileInfo load_file(char* WfileString);
+fileInfo load_file(char* fileString);
 
 int main(int argc, char* argv[]) {
-	// TODO - Numerar os exits de todas as funções
 	pid_t pid = fork();
 	int status;
 
@@ -54,6 +54,8 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr, "execlp error: %s", strerror(errno));
 			exit(3);
 		}
+
+		exit(0);
 	}
 	else { // Parent
 		if (waitpid(pid, &status, 0) == -1){
@@ -62,36 +64,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		sort_file(filePath);
-
-		//TODO para debugging - apagar
-		char line[BUF_LENGTH];
-		FILE* f= fopen(filePath, "r");
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-		fgets(line, BUF_LENGTH, f);
-
-		fileInfo a = load_file(line);
-		fgets(line, BUF_LENGTH, f);
-		fileInfo b = load_file(line);
-		printf("%s\n", a.path);
-		printf("%s\n", b.path);
-		if (equals_files(&a, &b) == 0)
-			printf("sim\n");
-		else
-			printf("nao\n");
-
-
-
-
-
-		fclose(f);
-		check_dupfiles(filePath);
+		check_dupfiles(filePath, argv[1]);
 	}
 
 	return 0;
@@ -132,7 +105,7 @@ int sort_file(const char* fileName){
 
 		close(fd[WRITE]); // Closes writing side
 		close(f);
-		exit(5);
+		exit(0);
 	}
 	else { // Parent
 		if (waitpid(pid, &status, 0) == -1){
@@ -147,11 +120,14 @@ int sort_file(const char* fileName){
 		// Creating a child process to execute Unix sort command
 		if ((pidSort = fork()) == -1) { // Error
 			fprintf(stderr, "Fork failed!\n");
-			exit(2);
+			exit(6);
 		}
 
 		else if (pidSort == 0) { // Child
-			// Execution of sort command
+			/* Execution of sort command
+			Because the way the file information was saved (name, date, others),
+			the sort will starting sorting from name and then, in case of equals names,
+			by date */
 			if (execlp("sort", "sort", "-o", fileName, NULL) == -1){
 				fprintf(stderr, "execlp error: %s", strerror(errno));
 				exit(7);
@@ -161,7 +137,7 @@ int sort_file(const char* fileName){
 		else { // Parent
 			if (waitpid(pidSort, &status, 0) == -1){
 				fprintf(stderr, "%s.\n", strerror(errno));
-				exit(5);
+				exit(8);
 			}
 		}
 	}
@@ -169,61 +145,56 @@ int sort_file(const char* fileName){
 	return 0;
 }
 
-int check_dupfiles(const char* filePath){
+int check_dupfiles(const char* filePath, char* directory){
 
-	// TODO falta terminar
+	FILE * f1, * f2;
+	int i, j, numFiles;
+	char line[BUF_LENGTH];
+	char *hlinks = strcat(directory, hlinksPath);
+	fileInfo* files = (fileInfo*)malloc(0);
 
-	char line[256];
-	FILE* f;
-	//struct fileInfo tempArr[1024];
-	if ((f = fopen(filePath, "r")) == NULL){
-		fprintf(stderr, "Couldn't open %s.", filePath);
-		fclose(f);
+	if ((f1 = fopen(filePath, "r")) == NULL){
+		fprintf(stderr, "Failed to open %s.", filePath);
+		fclose(f1);
 		exit(1);
 	}
 
-	int ch, nFiles = 0;
-
-	do{
-		ch = fgetc(f);
-		if(ch == '\n')
-			nFiles++;
-	} while (ch != EOF);
-	fclose(f);
-
-	if ((f = fopen(filePath, "r")) == NULL){
-		fprintf(stderr, "Couldn't open %s.", filePath);
-		fclose(f);
-		exit(1);
+	if ((f2 = fopen(hlinks, "w")) == NULL){
+		fprintf(stderr, "Failed to open %s.", hlinks);
+		fclose(f1);
+		fclose(f2);
+		exit(2);
 	}
 
-	fileInfo* files = malloc(nFiles*sizeof(fileInfo));
-	//printf("%u\n", sizeof(fileInfo*));
-	int ind = 0;
-	while (fgets(line, sizeof(line), f) != NULL) {
-		//printf("%s", line);
-		files[ind] = load_file(line);
-		//printf("%s\n", files[i].name);
-		ind++;
+	i = numFiles =0;
+	while (fgets(line, sizeof(line), f1) != NULL) {
+		files= realloc(files, (i+1)*sizeof(fileInfo));
+		files[i] = load_file(line);
+		i++;
+		numFiles++;
 	};
-	int i,j;
-	for (i = 0; i < nFiles; i++) {
-		if ((i-1)<nFiles) {
-			int inc = -1;
-			for (j = (i+1); j < nFiles; j++) {
-				int eq = equals_files(&files[i], &files[j]);
-				if (eq == 0) {
-					printf("%s %d is equal to %s %d\n", files[i].name,i,files[j].name,j);
-					inc++;
+
+	fclose(f1);
+
+	// The files are sorted by name and date (less to most recent)
+	for (i = 0; i < numFiles-1; i++){
+		for (j = 0; j < numFiles; j++){
+			if (files[i].isDupFile)
+				break;
+			else {
+				if (equals_files(&files[i], &files[i+j+1]) == 0){
+					files[i+j+1].isDupFile = 1;
+					unlink(files[i+j+1].path);
+					link(files[i].path, files[i+j+1].path);
+					fprintf(f2, "%-55s %-20s %-55s\n", files[i+j+1].path, "---link to-->", files[i].path);
 				}
-				if (inc > -1) {
-					i += inc;}
 			}
 		}
 	}
 
 	free(files);
-	fclose(f);
+	fclose(f2);
+
 	return 0;
 }
 
@@ -246,7 +217,7 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		fprintf(stderr, "Failed to open %s.", file2->path);
 		fclose(f1);
 		fclose(f2);
-		exit(1);
+		exit(2);
 	}
 
 	do{
@@ -267,29 +238,28 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 	return 0;
 }
 
-fileInfo load_file(char* WfileString){
+fileInfo load_file(char* fileString){
 
 	fileInfo file;
-	int i = 0;
-	const char space[2] = " \n";
-	char *fileString = strtok(WfileString, space);
+	char *fileToken;
 
-	strcpy(file.name, fileString);
-	fileString  = strtok(NULL, space);
-	while( fileString  != NULL )
-	{
-		if (i == 0)
-			strcpy(file.path, fileString);
-		else if (i == 1)
-			strcpy(file.date, fileString);
-		else if (i == 2)
-			strcpy(file.size, fileString);
-		else if (i == 3)
-			strcpy(file.permissions, fileString);
+	fileToken = strtok(fileString, "|");
+	strcpy(file.name, fileToken);
 
-		fileString  = strtok(NULL, space);
-		i++;
-	}
+	fileToken = strtok(NULL, " ");
+	strcpy(file.date, fileToken);
+
+	fileToken = strtok(NULL, " ");
+	strcpy(file.size, fileToken);
+
+	fileToken = strtok(NULL, " ");
+	strcpy(file.permissions, fileToken);
+
+	fileToken = strtok(NULL, "\n");
+	strcpy(file.path, fileToken);
+
+	// All files are initialized as being not duplicated from another one (value 0)
+	file.isDupFile = 0;
 
 	return file;
 }
