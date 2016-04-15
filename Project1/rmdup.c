@@ -71,6 +71,10 @@ int main(int argc, char* argv[]) {
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
 		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
+		fgets(line, BUF_LENGTH, f);
 
 		fileInfo a = load_file(line);
 		fgets(line, BUF_LENGTH, f);
@@ -93,115 +97,75 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-int sort_file(const char* fileName)
-{
-	// TODO  corrigir esta parte
-	/*int n, fd[2];
-		int file, status;
-		char buffer[BUF_LENGTH];
-		pid_t pid;
+int sort_file(const char* fileName){
+	int n, fd[2];
+	int f, status;
+	char buffer[BUF_LENGTH];
+	pid_t pid, pidSort;
 
-		if (pipe(fd) != 0) {
-			fprintf(stderr, "Pipe error,\n");
-			exit(1);
+	// Creates a pipe to be used between the parent and child processes
+	if (pipe(fd) != 0) {
+		fprintf(stderr, "Pipe error,\n");
+		exit(1);
+	}
+
+	if ((pid = fork()) == -1) { // Error
+		fprintf(stderr, "Fork failed!\n");
+		exit(2);
+	}
+
+	else if (pid == 0) { // Child
+		close(fd[READ]); // Closes reading side
+
+		if ((f = open(fileName, O_RDONLY, S_IRWXU)) == -1){
+			fprintf(stderr, "Failed to open %s.", fileName);
+			exit(3);
 		}
 
-		if ((pid = fork()) == -1) {
+		// Reads the information of each file and sends it through the pipe to the parent
+		while ((n = read(f, buffer, BUF_LENGTH)) != 0) {
+			if (write(fd[WRITE], buffer, n) != n) {
+				fprintf(stderr, "Write error to pipe\n");
+				exit(4);
+			}
+		}
+
+		close(fd[WRITE]); // Closes writing side
+		close(f);
+		exit(5);
+	}
+	else { // Parent
+		if (waitpid(pid, &status, 0) == -1){
+			fprintf(stderr, "%s.\n", strerror(errno));
+			exit(5);
+		}
+
+		close(fd[WRITE]); // Closes writing side
+		dup2(fd[READ], STDIN_FILENO);
+		close(fd[READ]); // Closes reading side
+
+		// Creating a child process to execute Unix sort command
+		if ((pidSort = fork()) == -1) { // Error
 			fprintf(stderr, "Fork failed!\n");
 			exit(2);
 		}
 
-		else if (pid == 0) { // Child
-			close(fd[READ]); // Closes reading side
-
-			if ((file = open(fileName, O_RDONLY, S_IRWXU)) == -1){
-				fprintf(stderr, "Failed to open %s.", fileName);
-				exit(3);
-			}
-
-			// Reads the information of each file and sends it through the pipe to the parent
-			while ((n = read(file, buffer, BUF_LENGTH)) != 0) {
-				if (write(fd[WRITE], buffer, n) != n) {
-					fprintf(stderr, "write error to pipe\n");
-					exit(4);
-				}
-			}
-
-			close(fd[WRITE]); // Closes writing side
-			close(file);
-		}
-		else { // Parent
-			if (waitpid(pid, &status, 0) == -1){
-				fprintf(stderr, "%s.\n", strerror(errno));
-				exit(5);
-			}
-
-			close(fd[WRITE]); // Closes writing side
-			dup2(fd[READ], STDIN_FILENO);
-			close(fd[READ]); // Closes reading side
-
-			if ((file = open(fileName, O_RDWR | O_CREAT , S_IRWXU)) == -1){
-				fprintf(stderr, "Failed to create %s.", fileName);
-				exit(6);
-			}
-
-			dup2(file, STDOUT_FILENO);
-			if (execlp("sort", "sort", NULL) == -1){
+		else if (pidSort == 0) { // Child
+			// Execution of sort command
+			if (execlp("sort", "sort", "-o", fileName, NULL) == -1){
 				fprintf(stderr, "execlp error: %s", strerror(errno));
 				exit(7);
 			}
-
-			close(file);
 		}
 
-		return 0;*/
-
-	int fd[2];
-	char buf[200];
-	int nr, nw;
-	pid_t pid;
-	pid_t pid2;
-
-	int std_in = dup(STDIN_FILENO);
-	int std_out = dup(STDOUT_FILENO);
-
-	if (pipe(fd) != 0) {
-		exit(1);
-	}
-
-	if ((pid = fork()) < 0) {
-		perror("fork");
-		exit(2);
-	}
-
-	if (pid == 0) {
-
-		close(fd[READ]);
-		int f = open(fileName, O_RDONLY, S_IRUSR | S_IWUSR | S_IXUSR);
-		while ((nr = read(f, buf, 200)) > 0) {
-			if ((nw = write(fd[WRITE], buf, nr)) <= 0 || nw != nr) {
-				exit(3);
+		else { // Parent
+			if (waitpid(pidSort, &status, 0) == -1){
+				fprintf(stderr, "%s.\n", strerror(errno));
+				exit(5);
 			}
 		}
-		close(f);
-		close(fd[WRITE]);
-		exit(0);
-	}
-	else {
-		waitpid(pid, NULL, 0);
-		close(fd[WRITE]);
-		dup2(fd[READ], STDIN_FILENO);
-		close(fd[READ]);
-		int f = open("files.txt", O_RDWR);
-		dup2(f, STDOUT_FILENO);
-		if((pid2 = fork()) == 0)
-			execlp("sort", "sort", (char*) NULL);
-		waitpid(pid2, NULL, 0);
-		close(f);
 	}
 
-	dup2(std_in, STDIN_FILENO);
-	dup2(std_out, STDOUT_FILENO);
 	return 0;
 }
 
@@ -209,8 +173,23 @@ int check_dupfiles(const char* filePath){
 
 	// TODO falta terminar
 
-	char line[256];
+	/*char line[256];
 	FILE* f;
+	//struct fileInfo tempArr[1024];
+	if ((f = fopen(filePath, "r")) == NULL){
+		fprintf(stderr, "Couldn't open %s.", filePath);
+		fclose(f);
+		exit(1);
+	}
+
+	int ch, nFiles = 0;
+
+	do{
+		ch = fgetc(f);
+		if(ch == '\n')
+			nFiles++;
+	} while (ch != EOF);
+	fclose(f);
 
 	if ((f = fopen(filePath, "r")) == NULL){
 		fprintf(stderr, "Couldn't open %s.", filePath);
@@ -218,22 +197,39 @@ int check_dupfiles(const char* filePath){
 		exit(1);
 	}
 
+
+
+	fileInfo* files = malloc(nFiles*sizeof(fileInfo));
+	//printf("%u\n", sizeof(fileInfo*));
+	int i = 0;
 	while (fgets(line, sizeof(line), f) != NULL) {
-		printf("%s", line);
+		//printf("%s", line);
+		files[i] = load_file(line);
+		//printf("%s\n", files[i].name);
+		i++;
 	};
 
-	fclose(f);
+	for (int i = 0; i < nFiles; i++) {
+		if ((i-1)<nFiles) {
+			int inc = -1;
+			for (int j = (i+1); j < nFiles; j++) {
+				int eq = equals_files(&files[i], &files[j]);
+				if (eq == 0) {
+					printf("%s %d is equal to %s %d\n", files[i].name,i,files[j].name,j);
+					inc++;
+				}
+				if (inc > -1) {
+					i += inc;}
+			}
+		}
+	}
 
-
-
-
-
+	free(files);
+	fclose(f);*/
 	return 0;
 }
 
 int equals_files(fileInfo * file1, fileInfo * file2){
-
-	// TODO não está a ler os ficheiros corretamente
 
 	FILE *f1, *f2;
 	char c1, c2;
@@ -243,44 +239,34 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		return -1; // Files are different
 
 	if ((f1 = fopen(file1->path, "r")) == NULL){
-		fprintf(stderr, "Couldn't access %s.", file1->path);
+		fprintf(stderr, "Failed to open %s.", file1->path);
 		fclose(f1);
 		exit(1);
 	}
 
 	if ((f2 = fopen(file2->path, "r")) == NULL){
-		fprintf(stderr, "Couldn't access %s.", file2->path);
+		fprintf(stderr, "Failed to open %s.", file2->path);
 		fclose(f1);
 		fclose(f2);
 		exit(1);
 	}
 
-	/*while ((c1 = getc(f1)) != EOF || (c2 = getc(f2)) != EOF){
-		if (c1 != c2)
-			return -1; // Files's Content are different from each other
-	}
-
-	if (c1 != c2)
-		return -1; // Files's Content are different from each other*/
-
-
-	do
-	{
+	do{
 		c1 = getc(f1);
 		c2 = getc(f2);
-	}  while ((c1 != EOF) && (c2 != EOF) && (c1 == c2));
+
+		if (c1 != c2)
+			return -1;
+
+	}  while ((c1 != EOF) && (c2 != EOF));
 
 	fclose(f1);
 	fclose(f2);
 
-	if (c1 == c2)
-		return 0;
-	else
-		return 1;
+	if (c1 != c2)
+		return -1; // Diferent contents
 
-
-
-	//return 0;
+	return 0;
 }
 
 fileInfo load_file(char* WfileString){
@@ -306,28 +292,6 @@ fileInfo load_file(char* WfileString){
 		fileString  = strtok(NULL, space);
 		i++;
 	}
-
-	/*fileInfo* file = (fileInfo *) malloc(sizeof(fileInfo*));
-	int i = 0;
-	const char space[2] = " \n";
-	char *fileString = strtok(WfileString, space);
-
-	strcpy(file->name, fileString);
-	fileString  = strtok(NULL, space);
-	while( fileString  != NULL )
-	{
-		if (i == 0)
-			strcpy(file->path, fileString);
-		else if (i == 1)
-			strcpy(file->date, fileString);
-		else if (i == 2)
-			strcpy(file->size, fileString);
-		else if (i == 3)
-			strcpy(file->permissions, fileString);
-
-		fileString  = strtok(NULL, space);
-		i++;
-	}*/
 
 	return file;
 }
