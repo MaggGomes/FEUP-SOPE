@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 
 
 		fclose(f);
-		//check_dupfiles(filePath);
+		check_dupfiles(filePath);
 	}
 
 	return 0;
@@ -173,7 +173,7 @@ int check_dupfiles(const char* filePath){
 
 	// TODO falta terminar
 
-	/*char line[256];
+	char line[256];
 	FILE* f;
 	//struct fileInfo tempArr[1024];
 	if ((f = fopen(filePath, "r")) == NULL){
@@ -197,22 +197,20 @@ int check_dupfiles(const char* filePath){
 		exit(1);
 	}
 
-
-
 	fileInfo* files = malloc(nFiles*sizeof(fileInfo));
 	//printf("%u\n", sizeof(fileInfo*));
-	int i = 0;
+	int ind = 0;
 	while (fgets(line, sizeof(line), f) != NULL) {
 		//printf("%s", line);
-		files[i] = load_file(line);
+		files[ind] = load_file(line);
 		//printf("%s\n", files[i].name);
-		i++;
+		ind++;
 	};
-
-	for (int i = 0; i < nFiles; i++) {
+	int i,j;
+	for (i = 0; i < nFiles; i++) {
 		if ((i-1)<nFiles) {
 			int inc = -1;
-			for (int j = (i+1); j < nFiles; j++) {
+			for (j = (i+1); j < nFiles; j++) {
 				int eq = equals_files(&files[i], &files[j]);
 				if (eq == 0) {
 					printf("%s %d is equal to %s %d\n", files[i].name,i,files[j].name,j);
@@ -225,7 +223,7 @@ int check_dupfiles(const char* filePath){
 	}
 
 	free(files);
-	fclose(f);*/
+	fclose(f);
 	return 0;
 }
 
