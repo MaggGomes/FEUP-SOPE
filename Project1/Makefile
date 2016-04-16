@@ -6,12 +6,11 @@ TARGET = rmdup
 
 all: rmdup lsdir
 
-rmdup: rmdup.c
-	$(CC) $(CFLAGS) -o rmdup rmdup.c
+rmdup: rmdup.h rmdup.c
+	$(CC) $(CFLAGS) -o rmdup rmdup.c && mv rmdup bin
 
-lsdir: lsdir.c
-	$(CC) $(CFLAGS) -o lsdir lsdir.c
+lsdir: lsdir.h lsdir.c
+	$(CC) $(CFLAGS) -o lsdir lsdir.c && mv lsdir bin
 
 clean:
-	$(RM) lsdir /*.o *~
-	$(RM) rmdup /*.o *~
+	$(RM) bin/*

@@ -1,38 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <sys/wait.h>
-
-#define READ 0
-#define WRITE 1
-#define BUF_LENGTH 512
-#define BUFINFO_LENGTH 20
+#include "rmdup.h"
 
 const char* filePath = "./files.txt";
 const char* hlinksPath = "/hlinks.txt";
-
-typedef struct {
-	char name[BUF_LENGTH];
-	char path[BUF_LENGTH];
-	char date[BUFINFO_LENGTH];
-	char permissions[BUFINFO_LENGTH];
-	char size[BUFINFO_LENGTH];
-	int isDupFile; // 1 if is a duplicated file, 0 otherwise
-} fileInfo;
-
-int sort_file(const char* fileName);
-
-int check_dupfiles(const char* filePath, char* directory);
-
-int equals_files(fileInfo * file1, fileInfo * file2);
-
-fileInfo load_file(char* fileString);
 
 int main(int argc, char* argv[]) {
 	pid_t pid = fork();

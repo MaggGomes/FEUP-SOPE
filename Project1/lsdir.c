@@ -1,17 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <sys/wait.h>
-
-#define BUF_LENGTH 512
-
-int explore_directory(int f, const char* dirPath, const char* filePath);
+#include "lsdir.h"
 
 int main(int argc, char *argv[]){
 
@@ -25,14 +12,14 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 
-	explore_directory(f, argv[1], argv[2]);
+	explore_directory(f, argv[1]);
 
 	close(f);
 
 	return 0;
 }
 
-int explore_directory(int f, const char* dirPath, const char* filePath){
+int explore_directory(int f, const char* dirPath){
 
 	struct dirent *dirStream;
 	struct stat fileStat;
@@ -72,7 +59,7 @@ int explore_directory(int f, const char* dirPath, const char* filePath){
 				fprintf(stderr, "Fork failed!\n");
 				exit(3);
 			}else if (pid == 0) { // Child
-				explore_directory(f, path, filePath);
+				explore_directory(f, path);
 				exit(0);
 			}
 
