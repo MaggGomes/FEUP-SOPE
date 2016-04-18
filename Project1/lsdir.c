@@ -42,8 +42,14 @@ int explore_directory(int f, const char* dirPath){
 			exit(2);
 		}
 
+		// Verifies if is possible to access the directory specified
+		if (access(path, R_OK) != 0)
+        {
+            fprintf(stderr, "%s.\n", strerror(errno));
+        }
+
 		// Verifies if it's a regular file
-		if(S_ISREG(fileStat.st_mode)){
+		else if(S_ISREG(fileStat.st_mode)){
 			// Name - date - path - size - permissions
 			sprintf(buffer,"%s| %d %d %d %-40s\n", dirStream->d_name, (int) fileStat.st_mtime, (int) fileStat.st_size, (int) fileStat.st_mode, path);
 			write(f, buffer, strlen(buffer));
