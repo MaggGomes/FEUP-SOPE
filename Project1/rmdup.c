@@ -59,8 +59,8 @@ int sort_file(const char* fileName){
 	else if (pid == 0) { // Child
 		close(fd[READ]); // Closes reading side
 
-		if ((f = open(fileName, O_RDONLY, S_IRWXU)) == -1){
-			fprintf(stderr, "Failed to open %s.\n", fileName);
+		if ((f = open(fileName, O_RDONLY)) == -1){
+			fprintf(stderr, "Failed to open %s(in sort_file).\n", fileName);
 			exit(3);
 		}
 
@@ -123,13 +123,13 @@ int check_dupfiles(const char* filePath, char* directory){
 	fileInfo* files = (fileInfo*)malloc(0);
 
 	if ((f1 = fopen(filePath, "r")) == NULL){
-		fprintf(stderr, "Failed to open %s.\n", filePath);
+		fprintf(stderr, "Failed to open %s (in check_dupfiles).\n", filePath);
 		fclose(f1);
 		exit(1);
 	}
 
 	if ((f2 = fopen(hlinks, "w")) == NULL){
-		fprintf(stderr, "Failed to open %s.\n", hlinks);
+		fprintf(stderr, "Failed to open %s (in check_dupfiles).\n", hlinks);
 		fclose(f1);
 		fclose(f2);
 		exit(2);
@@ -177,15 +177,13 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		return -1; // Files are different
 
 	if ((f1 = fopen(file1->path, "r")) == NULL){
-		fprintf(stderr, "Failed to open %s.\n", file1->path);
-		fclose(f1);
+		fprintf(stderr, "Failed to open %s (in equals_files).\n", file1->path);
 		exit(1);
 	}
 
 	if ((f2 = fopen(file2->path, "r")) == NULL){
-		fprintf(stderr, "Failed to open %s.\n", file2->path);
+		fprintf(stderr, "Failed to open %s (in equals_files).\n", file2->path);
 		fclose(f1);
-		fclose(f2);
 		exit(2);
 	}
 
@@ -196,7 +194,7 @@ int equals_files(fileInfo * file1, fileInfo * file2){
 		if (c1 != c2)
 			return -1;
 
-	}  while ((c1 != EOF) && (c2 != EOF));
+	}  while (!(feof(f1) || feof(f2)) && (c1 == c2));
 
 	fclose(f1);
 	fclose(f2);
