@@ -6,10 +6,10 @@ TARGET = rmdup
 
 all: rmdup lsdir
 
-bin/rmdup: rmdup.h rmdup.c
+rmdup: rmdup.h rmdup.c
 	$(CC) $(CFLAGS) -o bin/rmdup rmdup.c
 
-bin/lsdir: lsdir.h lsdir.c
+lsdir: lsdir.h lsdir.c
 	$(CC) $(CFLAGS) -o bin/lsdir lsdir.c
 
 clean:

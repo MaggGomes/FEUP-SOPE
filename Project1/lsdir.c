@@ -51,7 +51,7 @@ int explore_directory(int f, const char* dirPath){
 		// Verifies if it's a regular file
 		else if(S_ISREG(fileStat.st_mode)){
 			// Name - date - path - size - permissions
-			sprintf(buffer,"%s| %d %d %d %-40s\n", dirStream->d_name, (int) fileStat.st_mtime, (int) fileStat.st_size, (int) fileStat.st_mode, path);
+			sprintf(buffer,"%s| %d %d %d %s\n", dirStream->d_name, (int) fileStat.st_mtime, (int) fileStat.st_size, (int) fileStat.st_mode, path);
 			write(f, buffer, strlen(buffer));
 		}
 

@@ -124,13 +124,11 @@ int check_dupfiles(const char* filePath, char* directory){
 
 	if ((f1 = fopen(filePath, "r")) == NULL){
 		fprintf(stderr, "Failed to open %s (in check_dupfiles).\n", filePath);
-		fclose(f1);
 		exit(1);
 	}
 
 	if ((f2 = fopen(hlinks, "w")) == NULL){
 		fprintf(stderr, "Failed to open %s (in check_dupfiles).\n", hlinks);
-		fclose(f1);
 		fclose(f2);
 		exit(2);
 	}
