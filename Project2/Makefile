@@ -4,7 +4,7 @@ CFLAGS = -Wall
 
 TARGET = parque
 
-all: bin/paque bin/gerador
+all: bin/parque bin/gerador
 
 bin/parque: parque.c
 	$(CC) $(CFLAGS) -o bin/parque parque.c
