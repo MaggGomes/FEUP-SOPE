@@ -9,6 +9,7 @@ Cada thread associado a uma viatura (thread “viatura”) acompanha-la-á no se
 estacionado e “desaparece”.
 */
 
+void* viatura(void* arg);
 
 int main (int argc, char * argv[]){
 
@@ -19,4 +20,17 @@ int main (int argc, char * argv[]){
 
 
   return 0;
+}
+
+//TODO - IMPLEMENTAR
+
+void* viatura(void* arg) {
+	pthread_t selfThread = pthread_self();
+	
+	if (pthread_detach(selfThread) != 0){
+		perror("Failed to make thread number % detached.\n", selfThread);
+	exit(1);
+	}
+	
+	
 }

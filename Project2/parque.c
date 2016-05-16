@@ -1,12 +1,35 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <errno.h>
+#include <time>
 
 #define NUM_CONTROLLER 4
 #define NORTH 1
 #define SOUTH 2
 #define EAST 3
 #define WEST 4
+
+const char* LOG_FILENAME = "parque.log";
+const char* LOG_FULL = "cheio";
+const char* LOG_CLOSED = "encerrado"
+const char* LOG_PARKING = "estacionamento";
+const char* LOG_EXIT= "saida";
+
+// Global variables
+static int numPlaces;
+static int openTime;
+static int occupiedPlaces = 0;
+clock_t startT;
+clock_t endT;
+
+typedef struct {
+	clock_t parkingTime;
+	char entryName;
+	int idParkingPlace;
+	int id;	
+} vehiculeInfo
+
 
 /*
 ///APAGAR
@@ -31,18 +54,105 @@ semáforos). Sempre que possível, todas as atividades ligadas à simulação de
 ativas” (busy waiting).
 */
 
+// TODO - colocar na makefile -pthread
+
+// TODO - IMPLEMENTAR ESTAS FUNÇÕES QUE VAI SER USADAS PARA A EXECUÇÃO DOS THREADS
+
+void* controller(void* arg);
+
+void* carSaver(void* arg);
+
 
 
 
 int main (int argc, char * argv[]){
+	
+	pthread_t threads[NUM_CONTROLLER];
+	int i;
 
   if (argc != 3 ){
 		fprintf(stderr, "Usage: %s <N_LUGARES> <T_ABERTURA>\n", argv[0]);
 		exit(1);
 	}
+	
+	// TODO - LER ARGUMENTOS PASSADOS
+	
+	// TODO - ABRIR O FICHEIRO LOGGER
 
 
+// TODO - CRIAR UM THREAD PARA CADA CONTROLADOR E NO FINAL CHAMAR SLEEP(OPENTIME), DE MODO
+// A O PROGRAMA(PARQUE) ESTEJA ABERTO O TEMPO REQUERIDO
 
+startT = clock();
 
-  return 0;
+	for (i = 0; i  < NUM_CONTROLLER; i++){
+		// TODO -  TERMINAR
+		//pthread_create(NULL, controller, )
+	}
+
+		// substituir por alarm(openTime)???
+			sleep(openTime);
+	
+	
+	// pthread_join(pthread_t thread, void **value_ptr); Espera que um thread termine
+
+	
+  pthread_exit(0);
+}
+
+// TODO - FAZER
+void* controller(void* arg){
+	
+	/*
+	criar o seu FIFO próprio (identificado por “fifo?”, onde '?' será ou N ou E, ou S ou O);
+ receber pedidos de acesso através do seu FIFO; cada pedido inclui os seguintes dados:
+◦ porta de entrada;
+◦ tempo de estacionamento (em clock ticks);
+◦ número identificador único da viatura (inteiro);
+◦ nome do FIFO privado para a comunicação com o thread “viatura” do programa Gerador.
+ criar um thread “arrumador” para cada pedido de entrada recebido e passar-lhe a informação
+correspondente a esse pedido;
+ estar atento a uma condição de terminação (correspondendo à passagem do T_ABERTURA do
+Parque) e, nessa altura, ler todos os pedidos pendentes no seu FIFO e fechá-lo para que potenciais
+novos clientes de estacionamento sejam notificados do encerramento do Parque; encaminhar os
+últimos pedidos a correspondentes thread “arrumador”. 
+*/
+	
+	
+	
+}
+
+// TODO - FAZER
+void* carSaver(void* arg){
+	pthread_t selfThread = pthread_self();
+	
+	if (pthread_detach(selfThread) != 0){
+		perror("Failed to make thread number % detached.\n", selfThread);
+	exit(1);
+	}
+	
+	/*
+	recolher a informação sobre a viatura de que está encarregue;
+ verificar se há lugar para o estacionamento da viatura ou não (nota: esta operação deverá ser
+executada de forma sincronizada com todos os outros threads do mesmo tipo, não havendo
+competição por um lugar concreto do Parque!)
+◦ se não houver vaga (Parque cheio), nega à viatura o acesso ao Parque, mediante a colocação
+de uma mensagem disso indicativa (“cheio!”) no FIFO privado da viatura, que será lida pelo
+respetivo thread “viatura” do programa Gerador;
+◦ se houver vaga no Parque, reserva-a (evitando condições de competição – race conditions –
+com todos os outros threads do mesmo tipo) e envia, pelo FIFO privado da viatura, uma
+mensagem esclarecedora do estacionamento (“entrada”) ao respetivo thread “viatura”; neste
+caso a viatura ‘desaparece’.
+ na sequência da admissão de uma viatura ao Parque, ligar um temporizador local, para controlar o
+tempo de estacionamento da viatura, e quando o prazo terminar, “acompanhar a viatura à saída do
+Parque”, colocando uma mensagem indicativa ("saida") no FIFO privado da viatura, que será lida
+pelo respetivo thread “viatura”;
+ na sequência da saída de uma viatura do
+Parque, dar baixa do lugar ocupado, atualizando
+(de forma sincronizada com todos os outros
+threads do mesmo tipo) a contagem do número
+de lugares vagos no Parque. 
+*/
+	
+	
 }
