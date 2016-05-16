@@ -4,24 +4,25 @@
 #include <errno.h>
 #include <time>
 
-#define NUM_CONTROLLER 4
+#define NUM_CONTROLLERS 4
 #define NORTH 1
 #define SOUTH 2
 #define EAST 3
 #define WEST 4
 
+// Global variables
 const char* LOG_FILENAME = "parque.log";
 const char* LOG_FULL = "cheio";
 const char* LOG_CLOSED = "encerrado"
 const char* LOG_PARKING = "estacionamento";
 const char* LOG_EXIT= "saida";
+const char* FIFO_CONTROLLERS[NUM_CONTROLLERS] = {"fifoN", "fifoS", "fifoE", "fifoO"};
 
-// Global variables
 static int numPlaces;
 static int openTime;
 static int occupiedPlaces = 0;
-clock_t startT;
-clock_t endT;
+static clock_t startT;
+static pthread_mutex_t mutexPark = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct {
 	clock_t parkingTime;
@@ -67,7 +68,7 @@ void* carSaver(void* arg);
 
 int main (int argc, char * argv[]){
 	
-	pthread_t threads[NUM_CONTROLLER];
+	pthread_t controllerThreads[NUM_CONTROLLER];
 	int i;
 
   if (argc != 3 ){
@@ -87,15 +88,17 @@ startT = clock();
 
 	for (i = 0; i  < NUM_CONTROLLER; i++){
 		// TODO -  TERMINAR
-		//pthread_create(NULL, controller, )
+		pthread_create(controllerThreads[i], NULL, controller, controller_name[i]);
 	}
 
-		// substituir por alarm(openTime)???
+	// TODO - USAR ALARM?
 			sleep(openTime);
 	
 	
-	// pthread_join(pthread_t thread, void **value_ptr); Espera que um thread termine
-
+	// Waits for the thread of each park's controller
+	for (i = 0; i < NUM_CONTROLLERS; i++){
+		pthread_join(controllerThreads[i], NULL);
+	}
 	
   pthread_exit(0);
 }
