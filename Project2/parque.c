@@ -68,7 +68,16 @@ void* carSaver(void* arg);
 
 int main (int argc, char * argv[]){
 	
-	pthread_t controllerThreads[NUM_CONTROLLER];
+	/*
+	 inicializa as variáveis globais necessárias, incluindo o temporizador geral que controla o tempo de
+abertura do Parque;
+ cria os 4 threads “controlador”, um para cada acesso, e aguarda que eles terminem;
+ finalmente, efetua e publica estatísticas globais. 
+*/
+
+
+	
+	pthread_t controllerThreads[NUM_CONTROLLERS];
 	int i;
 
   if (argc != 3 ){
@@ -87,8 +96,7 @@ int main (int argc, char * argv[]){
 startT = clock();
 
 	for (i = 0; i  < NUM_CONTROLLER; i++){
-		// TODO -  TERMINAR
-		pthread_create(controllerThreads[i], NULL, controller, controller_name[i]);
+		pthread_create(controllerThreads[i], NULL, controller, FIFO_CONTROLLERS[i]);
 	}
 
 	// TODO - USAR ALARM?
