@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <errno.h>
+#include <pthread.h>
 
 /*
 O programa Gerador, de forma pseudo-aleatória, “cria” viaturas e associa um novo thread a cada uma.
@@ -26,11 +28,11 @@ int main (int argc, char * argv[]){
 
 void* viatura(void* arg) {
 	pthread_t selfThread = pthread_self();
-	
+
 	if (pthread_detach(selfThread) != 0){
-		perror("Failed to make thread number % detached.\n", selfThread);
+		perror("Failed to make a thread detached.\n");
 	exit(1);
 	}
-	
-	
+
+  pthread_exit(NULL);
 }
