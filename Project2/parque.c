@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
@@ -40,6 +43,36 @@ void* controller(void* arg);
 // TODO - FAZER
 void* carSaver(void* arg);
 
+/**
+ * @brief Creates and opens a fifo
+ *
+ * @param pathName where the fifo will be created
+ * @param flag used to open the fifo
+ * @return the file descritor of the fifo if no error has ocurred; -1 otherwise
+ */
+int createFifo(char* pathName, int flag) {
+    int fd;
+
+    if (mkfifo(pathName, S_IWUSR | S_IRUSR) == -1)
+    {
+        perror("mkfifo returned an error: file may already exists.");
+        return -1;
+    }
+
+    if ( (fd = open(pathName, flag)) == -1 )
+    {
+        perror("Can't open FIFO.");
+				if (unlink(pathName) == -1)
+    {
+        perror("FIFO unlink failed");
+        return -1;
+    }
+        return -1;
+    }
+
+    return fd;
+}
+
 int main (int argc, char * argv[]){
 
 	pthread_t controllerThreads[NUM_CONTROLLERS];
@@ -55,19 +88,32 @@ int main (int argc, char * argv[]){
 	// TODO - ABRIR O FICHEIRO LOGGER
 
 
+// TODO  APAGAR ISTO
+int j;
+
+/*for (j = 0; j < 4; j++){
+	printf("%s\n", fifoControllers[j]);
+}*/
+
+
 startT = clock();
 
 	for (i = 0; i  < NUM_CONTROLLERS; i++){
 		pthread_create(&controllerThreads[i], NULL, controller, fifoControllers[i]);
 	}
 
-			sleep(openTime);
+			sleep(openTime); // Park is open
 
+	// Close park
+
+	// TODO - GIVE ORDER TO THE CONTROLLERS TO STOP
 
 	// Waits for the thread of each park's controller
 	for (i = 0; i < NUM_CONTROLLERS; i++){
 		pthread_join(controllerThreads[i], NULL);
 	}
+
+	// TODO - CRIAR ESTATISTICAS
 
   pthread_exit(0);
 }
@@ -75,6 +121,7 @@ startT = clock();
 // TODO - FAZER
 void* controller(void* arg){
 
+// TODO - CRIAR FIFO PROPRIO
 
 
 

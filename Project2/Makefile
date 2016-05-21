@@ -2,7 +2,7 @@ CC = gcc
 
 CFLAGS = -Wall
 
-TARGET = parque
+TARGET = parque clean
 
 all: bin/parque bin/gerador
 
