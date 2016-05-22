@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <time.h>
 #include <errno.h>
 #include <pthread.h>
@@ -19,8 +23,7 @@ int main (int argc, char * argv[]){
 		fprintf(stderr, "Usage: %s <T_GERACAO> <U_RELOGIO>\n", argv[0]);
 		exit(1);
 	}
-
-
+  
   return 0;
 }
 
