@@ -1,9 +1,16 @@
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <time.h>
-#include <errno.h>
-#include <pthread.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <semaphore.h>
+#include <pthread.h>
+
 
 /*
 O programa Gerador, de forma pseudo-aleatória, “cria” viaturas e associa um novo thread a cada uma.
@@ -15,14 +22,14 @@ estacionado e “desaparece”.
 #define LOG_FILE "gerador.log"
 
 typedef struct {
-    clock_t parked_time;
-    int v_id;
-    char fifo_name[50];
-} information_t;
+  clock_t parked_time;
+  int v_id;
+  char fifoName[50];
+} infrmation_t;
 
 typedef struct {
-    char fifo_name[50];
-    information_t info;
+  char fifoName[50];
+  infrmation_t inf;
 } vehicle_t;
 
 //global variables
@@ -30,15 +37,22 @@ static clock_t initial_time;
 static int t_ger;
 static clock_t u_rel;
 static int vID = 0;
+static sem_t* smf;
+static FILE* logger;
 
-//functions declarations
+//auxiliar functions declarations
 
 void* create_vehicle_tracker(void* arg);
-
 char* access_point();
 int parked_time();
 clock_t time_between_generations();
 void wait_new_vehicle();
+int startFifo(char* fifoName, int fl);
+int endFifo(char* fifoName);
+sem_t* startSmf(const char* name);
+FILE* startLog(char* name);
+int log_inf(vehicle_t vehicle, const char* status);
+int log_inf2(vehicle_t vehicle, const char* status, clock_t lifespan);
 
 vehicle_t create_vehicle();
 
@@ -50,9 +64,29 @@ int main (int argc, char * argv[]){
     fprintf(stderr, "Usage: %s <T_GERACAO> <U_RELOGIO>\n", argv[0]);
     exit(1);
   }
+  errno = 0;
+  t_ger = strtol(argv[1],NULL,10);
+  if (errno == ERANGE || errno == EINVAL) {
+    perror("convert T_GERACAO failed");
+    exit(2);
+  }
+  errno = 0;
+  u_rel = strtol(argv[2], NULL, 10);
+  if (errno == ERANGE || errno == EINVAL) {
+    perror("convert U_RELOGIO failed");
+    exit(3);
+  }
 
-  t_ger = atoi(argv[1]);
-  u_rel = (int *) atoi(argv[2]);
+  if ( (logger = startLog(LOG_FILE)) == NULL )
+  {
+    fprintf(stderr, "Error opening %s\n", LOG_FILE);
+    exit(4);
+  }
+
+
+  if ((smf = startSmf("/semaphore")) == SEM_FAILED ){
+    exit(5);
+  }
 
   srand(time(NULL));
 
@@ -62,7 +96,7 @@ int main (int argc, char * argv[]){
   double elapsed_time = 0;
   while (elapsed_time <= (double) t_ger){
     /*vehicle_t as = create_vehicle();
-    printf("%s %s %d %Lf\n", as.fifo_name, as.info.fifo_name, as.info.v_id, (long double) as.info.parked_time);*/
+    printf("%s %s %d %Lf\n", as.fifoName, as.inf.fifoName, as.inf.v_id, (long double) as.inf.parked_time);*/
 
     vehicle_t* vehicle;
     vehicle = malloc(sizeof(vehicle_t));
@@ -88,8 +122,29 @@ void* create_vehicle_tracker(void* arg) {
     exit(1);
   }
 
+  vehicle_t tempVeh = *(vehicle_t *) arg;
+  int fifo_vehicle,fifo_ctr;
 
-  pthread_exit(NULL);
+  if ((fifo_vehicle = startFifo(tempVeh.inf.fifoName, O_RDWR)) == -1) {
+    free(arg);
+    return NULL;
+  }
+
+  sem_wait(smf);
+
+  if ( (fifo_ctr = open(tempVeh.fifoName, O_WRONLY | O_NONBLOCK)) == -1 ){
+    log_inf(tempVeh, "encerrado");
+    endFifo(tempVeh.fifoName);
+    free(arg);
+    sem_post(smf);
+    return NULL;
+  }
+
+
+  free(arg);
+  close(fifo_vehicle);
+  endFifo(tempVeh.inf.fifoName);
+  return NULL;
 }
 
 char* access_point(){
@@ -98,13 +153,13 @@ char* access_point(){
   int rd = rand()%100;
 
   if(rd < 25)
-  ret = "/temp/fifoN";
+  ret = "/tmp/fifoN";
   else if(rd < 50)
-  ret = "/temp/fifoS";
+  ret = "/tmp/fifoS";
   else if(rd < 75)
-  ret = "/temp/fifoO";
+  ret = "/tmp/fifoO";
   else if(rd < 100)
-  ret = "/temp/fifoE";
+  ret = "/tmp/fifoE";
 
   return ret;
 }
@@ -165,23 +220,111 @@ void wait_new_vehicle(){
 vehicle_t create_vehicle(){
   vehicle_t ret;
 
-  strcpy(ret.fifo_name, access_point());
-  ret.info.v_id = vID;
-  ret.info.parked_time =  parked_time();
-  sprintf(ret.info.fifo_name, "%s_%d", "/temp/fifo_vh", vID);
+  strcpy(ret.fifoName, access_point());
+  ret.inf.v_id = vID;
+  ret.inf.parked_time =  parked_time();
+  sprintf(ret.inf.fifoName, "%s_%d", "/tmp/fifo_vh", vID);
 
   vID++;
 
   return ret;
 }
 
-FILE* create_log_file() {
-    FILE* log_file;
+int startFifo(char* fifoName, int fl) {
+  int ret;
+  char errorMsg[200];
 
-    if ( (log_file = fopen(name, "w")) == NULL )
-        return NULL;
+  if (mkfifo(fifoName, S_IWUSR | S_IRUSR) == -1)
+  {
+    sprintf(errorMsg, "FIFO %s not created", fifoName);
+    perror(errorMsg);
+    return -1;
+  }
 
-    fprintf(log_file, "t(ticks) ; id_viat ; destin ; t_estacion ; t_vida ; observ\n");
+  if ( (ret = open(fifoName, fl)) == -1 )
+  {
+    sprintf(errorMsg, "FIFO %s not opened", fifoName);
+    perror(errorMsg);
+    endFifo(fifoName);
+    return -1;
+  }
 
-    return log_file;
+  return ret;
+}
+
+
+int endFifo(char* fifoName){
+  char errorMsg[200];
+
+  if (unlink(fifoName) == -1)
+  {
+    sprintf(errorMsg, "fifo %s unlink failed", fifoName);
+    perror(errorMsg);
+    return -1;
+  }
+
+  return 0;
+}
+
+sem_t* startSmf(const char* name) {
+  sem_t* ret;
+
+  if( (ret = sem_open(name, O_CREAT | O_EXCL, S_IWUSR | S_IRUSR, 1)) == SEM_FAILED ){
+    if (errno == EEXIST){
+      if( (ret = sem_open(name, 0)) == SEM_FAILED ){
+        perror("Semaphore not opened");
+        return SEM_FAILED;
+      }
+    }else{
+      perror("Semaphore not created");
+      return SEM_FAILED;
+    }
+  }
+
+  return ret;
+}
+
+FILE* startLog(char* name) {
+  FILE* ret;
+
+  if ( (ret = fopen(name, "w")) == NULL )
+  return NULL;
+
+  fprintf(ret, "t(ticks) ; id_viat ; destin ; t_estacion ; t_vida ; observ\n");
+
+  return ret;
+}
+
+int log_inf(vehicle_t vehicle, const char* status) {
+  char msg[200];
+
+  sprintf(msg, "%8ld ; %7d ; %4c   ; %10ld ; %6s ; %s\n",
+  clock() - initial_time,
+  vehicle.inf.v_id,
+  vehicle.fifoName[strlen(vehicle.fifoName) - 1],
+  vehicle.inf.parked_time,
+  "?",
+  status
+  );
+
+  return fprintf(logger, "%s", msg);
+}
+
+int log_inf2(vehicle_t vehicle, const char* status, clock_t lifespan) {
+  char msg[200];
+  char aux_str[100];
+
+
+  sprintf(aux_str, "%ld", lifespan);
+
+  sprintf(msg, "%8ld ; %7d ; %4c   ; %10ld ; %6s ; %s\n",
+  clock() - initial_time,
+  vehicle.inf.v_id,
+  vehicle.fifoName[strlen(vehicle.fifoName) - 1],
+  vehicle.inf.parked_time,
+  aux_str,
+  status
+  );
+
+  return fprintf(logger, "%s", msg);
 }
