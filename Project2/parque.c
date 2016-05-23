@@ -13,7 +13,7 @@
 // Global variables
 static int numPlaces;
 static int openTime;
-static int occupiedPlaces = 0;
+static int numOccupiedPlaces = 0;
 static clock_t startT;
 static pthread_mutex_t mutexPark = PTHREAD_MUTEX_INITIALIZER;
 static FILE* fdLog;
@@ -53,7 +53,7 @@ void close_park();
 * @param vehicle
 * @param msg to be written
 */
-void write_to_log(vehicle_t vehicle, const char* msg);
+void update_log(vehicle_t vehicle, const char* msg);
 
 int main (int argc, char * argv[]){
 
@@ -128,7 +128,7 @@ void* controller(void* arg){
 		// If a vehicle is received
 		if (n > 0)
 		{
-			if (vehicle.stopVehicle == 1){
+			if (vehicle.stopVehicle == 1){ // Stop vehicle --> close controller
 				break;
 			}
 			// Creates a new thread for each car to park it if possible
@@ -167,6 +167,23 @@ void* car_park(void* arg){
 		perror(vehicle.inf.fifoName);
 		return NULL;
 	}
+
+	pthread_mutex_lock(&mutexPark);
+
+	if (numOccupiedPlaces < numPlaces){
+		numOccupiedPlaces++;
+
+	}
+
+	else {
+		write(fd, FULL, sizeof(FULL));
+		update_log(vehicle, FULL);
+	}
+
+
+	pthread_mutex_unlock(&mutexPark);
+
+	numOccupiedPlaces--;
 
 	/*
 
@@ -216,7 +233,6 @@ free(arg);
 close(fd_vehicle);
 return NULL;*/
 
-
 return NULL;
 }
 
@@ -259,7 +275,7 @@ void close_park(){
 	}
 }
 
-void write_to_log(vehicle_t vehicle, const char* msg){
+void update_log(vehicle_t vehicle, const char* msg){
 	char logMsg[BUF_LENGTH];
 	// TODO - CORRIGIR
 	sprintf(logMsg, "%8ld ; %4d ; %7d ; %s\n",
