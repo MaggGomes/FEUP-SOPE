@@ -18,7 +18,7 @@ const char* LOG_FULL = "cheio";
 const char* LOG_CLOSED = "encerrado";
 const char* LOG_PARKING = "estacionamento";
 const char* LOG_EXIT= "saida";
-char* fifoControllers[NUM_CONTROLLERS] = {"fifoN", "fifoS", "fifoE", "fifoO"};
+char* fifoControllers[NUM_CONTROLLERS] = {"./temp/fifoN", "./temp/fifoS", "./temp/fifoE", "./temp/fifoO"};
 
 static int numPlaces;
 static int openTime;
@@ -185,7 +185,7 @@ int create_fifo(char* pathName, int flag) {
 // TODO - CORRIGIR
 void close_park(){
 	int i;
-	
+
 	for (i = 0; i < NUM_CONTROLLERS; i++){
 		int fd = open(fifoControllers[i], O_WRONLY  | O_NONBLOCK);
 		if (fd == -1)

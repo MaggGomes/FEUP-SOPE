@@ -155,13 +155,13 @@ char* access_point(){
   int rd = rand()%100;
 
   if(rd < 25)
-  ret = "/tmp/fifoN";
+  ret = "./temp/fifoN";
   else if(rd < 50)
-  ret = "/tmp/fifoS";
+  ret = "./temp/fifoS";
   else if(rd < 75)
-  ret = "/tmp/fifoO";
+  ret = "./temp/fifoO";
   else if(rd < 100)
-  ret = "/tmp/fifoE";
+  ret = "./temp/fifoE";
 
   return ret;
 }
@@ -225,7 +225,7 @@ vehicle_t create_vehicle(){
   strcpy(ret.fifoName, access_point());
   ret.inf.v_id = vID;
   ret.inf.parked_time =  parked_time();
-  sprintf(ret.inf.fifoName, "%s_%d", "/tmp/fifo_vh", vID);
+  sprintf(ret.inf.fifoName, "%s_%d", "./temp/fifo_vh", vID);
 
   vID++;
 
