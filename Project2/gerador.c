@@ -25,11 +25,11 @@ typedef struct {
   clock_t parked_time;
   int v_id;
   char fifoName[50];
-} infrmation_t;
+} info_t;
 
 typedef struct {
   char fifoName[50];
-  infrmation_t inf;
+  info_t inf;
 } vehicle_t;
 
 //global variables
@@ -139,6 +139,19 @@ void* create_vehicle_tracker(void* arg) {
     sem_post(smf);
     return NULL;
   }
+
+  if (write(fifo_ctr, &tempVeh.inf, sizeof(tempVeh.inf)) == -1){
+    perror("Problem writing in controller");
+    endFifo(tempVeh.inf.fifoName);
+    close(fifo_ctr);
+    free(arg);
+    sem_post(smf);
+    return NULL;
+  }
+
+  close(fifo_ctr);
+
+  sem_post(smf);
 
 
   free(arg);
@@ -305,9 +318,9 @@ int log_inf(vehicle_t vehicle, const char* status) {
   vehicle.inf.parked_time,
   "?",
   status
-  );
+);
 
-  return fprintf(logger, "%s", msg);
+return fprintf(logger, "%s", msg);
 }
 
 int log_inf2(vehicle_t vehicle, const char* status, clock_t lifespan) {
@@ -324,7 +337,7 @@ int log_inf2(vehicle_t vehicle, const char* status, clock_t lifespan) {
   vehicle.inf.parked_time,
   aux_str,
   status
-  );
+);
 
-  return fprintf(logger, "%s", msg);
+return fprintf(logger, "%s", msg);
 }
