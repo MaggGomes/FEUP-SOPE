@@ -6,10 +6,10 @@ TARGET = parque clean
 
 all: bin/parque bin/gerador
 
-bin/parque: parque.c
+bin/parque: utilities.h parque.c
 					$(CC) parque.c -pthread -lrt -o bin/parque $(CFLAGS)
 
-bin/gerador: gerador.c
+bin/gerador: utilities.h gerador.c
 					$(CC) gerador.c -pthread -lrt -o bin/gerador $(CFLAGS)
 
 clean:

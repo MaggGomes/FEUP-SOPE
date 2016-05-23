@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <pthread.h>
-
+#include "utilities.h"
 
 /*
 O programa Gerador, de forma pseudo-aleatória, “cria” viaturas e associa um novo thread a cada uma.
@@ -20,17 +20,6 @@ estacionado e “desaparece”.
 */
 
 #define LOG_FILE "gerador.log"
-
-typedef struct {
-  clock_t parked_time;
-  int v_id;
-  char fifoName[50];
-} info_t;
-
-typedef struct {
-  char fifoName[50];
-  info_t inf;
-} vehicle_t;
 
 //global variables
 static clock_t initial_time;
