@@ -148,7 +148,7 @@ int main (int argc, char * argv[]){
 
 
   printf("Generator stopped!\n");
-  return 0;
+  pthread_exit(0);
 }
 
 
