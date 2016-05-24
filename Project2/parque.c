@@ -138,6 +138,7 @@ void* controller(void* arg){
 		if (n > 0)
 		{
 			if (vehicle->stopVehicle == 1){ // Stop vehicle --> close controller
+        printf("%s\n", "stopVehicle");
 				break;
 			}
 			// Creates a new thread for each car to park it if possible
@@ -163,8 +164,6 @@ void* car_park(void* arg) {
   int fd;
   info_t info = *(info_t *) arg;
   message_t message, exitmsg;
-  int accepted = 0;
-
   pthread_t selfThread = pthread_self();
 
 	// Makes the thread detached
@@ -188,7 +187,6 @@ void* car_park(void* arg) {
     write(fd, &message, sizeof(message));
   }
   else {
-    accepted = 1;
     numOccupiedPlaces++;
     strcpy(message.msg, ENTRY_PARK);
     update_log(info, PARKING);
