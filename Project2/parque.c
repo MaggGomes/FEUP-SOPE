@@ -152,6 +152,7 @@ void* controller(void* arg){
 void* car_park(void* arg){
 
 	int fd;
+	char msg[BUF_LENGTH];
 	vehicle_t vehicle = *(vehicle_t *) arg;
 	pthread_t selfThread = pthread_self();
 
@@ -162,20 +163,21 @@ void* car_park(void* arg){
 	}
 
 	if ((fd = open(vehicle.inf.carFIFO, O_WRONLY  | O_NONBLOCK)) == -1){
-		perror(vehicle.inf.carFIFO);
+		sprintf(msg, "Error opening FIFO %s", vehicle.inf.carFIFO);
+		perror(msg);
 		return NULL;
 	}
 
 	pthread_mutex_lock(&mutexPark);
 	if (numOccupiedPlaces == numPlaces){
-		write(fd, FULL, sizeof(FULL));
+		write(fd, FULL, BUF_LENGTH);
 		update_log(vehicle, FULL);
 	}
 	else { // There are free parking places
 		numOccupiedPlaces++;
 		update_log(vehicle, PARKING);
 		pthread_mutex_unlock(&mutexPark);
-		write(fd, ENTRY_PARK, sizeof(ENTRY_PARK));
+		write(fd, ENTRY_PARK, BUF_LENGTH);
 
 		// Counts parking time
 		clock_t start, end;
@@ -190,7 +192,7 @@ void* car_park(void* arg){
 		numOccupiedPlaces--;
 		pthread_mutex_unlock(&mutexPark);
 
-		write(fd, EXIT_PARK, sizeof(EXIT_PARK));
+		write(fd, EXIT_PARK, BUF_LENGTH);
 	}
 
 	close(fd);
@@ -227,7 +229,7 @@ void close_park(){
 	vehicle.stopVehicle = 1; // Stop vehicle
 
 	for (i = 0; i < NUM_CONTROLLERS; i++){
-		if ((fd = open(fifoControllers[i], O_WRONLY  | O_NONBLOCK)) == -1){
+		if ((fd = open(fifoControllers[i], O_WRONLY)) == -1){
 			perror(fifoControllers[i]);
 			return;
 		}
@@ -239,10 +241,13 @@ void close_park(){
 
 void update_log(vehicle_t vehicle, const char* msg){
 	char logMsg[BUF_LENGTH];
+	printf("%s\n", "checou ao update");
 
 	sprintf(logMsg, "%8ld ; %4d ; %7d ; %s\n",
 	clock() - startT, numOccupiedPlaces, vehicle.inf.v_id, "cheio");
+	printf("%s\n", logMsg);
+	sleep(10);
 
 	// Writes to the log
-	fprintf(fdLog, logMsg, strlen(logMsg));
+	fprintf(fdLog, logMsg, BUF_LENGTH);
 }

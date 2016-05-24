@@ -235,17 +235,12 @@ void wait_new_vehicle(){
 
 vehicle_t create_vehicle(){
   vehicle_t ret;
+  ret.stopVehicle = 0;
   char* ap = access_point();
   strcpy(ret.accessFIFO, ap);
   ret.inf.v_id = vID;
   ret.inf.parked_time =  parked_time();
   sprintf(ret.inf.carFIFO, "%s_%d", "/tmp/fifo_vh", vID);
-  // TODO - APAGAR ISTO
-  printf("Vehicle ID: %d\n", vID);
-  printf("Access point: %s\n", ap);
-  printf("Access FIFO: %s\n", ret.accessFIFO);
-  printf("Tracker FIFO: %s\n", ret.inf.carFIFO);
-  printf("Time to be parked: %f\n\n",(double) ret.inf.parked_time);
 
   vID++;
 
