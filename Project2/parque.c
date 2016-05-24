@@ -86,6 +86,7 @@ int main(int argc, char** argv) {
   fprintf(fdLog, "t(ticks) ; nlug ; id_viat ; observ\n");
 
   startT = clock(); // Current time
+  printf("%s\n", "Park is open.");
 
   for (i = 0; i < NUM_CONTROLLERS; i++)
   {
@@ -104,6 +105,9 @@ int main(int argc, char** argv) {
   sem_post(smf);
 
   fclose(fdLog);
+
+  printf("%s\n", "Park is closed.");
+
   pthread_exit(0);
 }
 
@@ -123,6 +127,7 @@ void* controller(void* arg){
 		pthread_exit(NULL);
 	}
 
+  printf("Controller %s open!\n", fifoName);
 
 	while (1) {
     vehicle = (info_t *) malloc(sizeof(info_t));
@@ -146,6 +151,7 @@ void* controller(void* arg){
 	perror(fifoName);
 
 	close(fd);
+  printf("Controller %s closed!\n", fifoName);
 
 	if (unlink(fifoName) == -1)
 	perror(strcat("Erro unlinking fifo ", fifoName));
@@ -167,7 +173,6 @@ void* car_park(void* arg) {
 		return NULL;
 	}
 
-
   if ((fd = open(info.carFIFO, O_WRONLY)) == -1 )
   {
     perror(strcat(info.carFIFO, " FIFO opening failed on arrumador"));
@@ -175,47 +180,37 @@ void* car_park(void* arg) {
     return NULL;
   }
 
-  // Validar entrada (Zona critica)
   pthread_mutex_lock(&mutexPark );
-
-  if (numOccupiedPlaces < numPlaces)
-  {
+  if (numOccupiedPlaces >= numPlaces){
+    strcpy(message.msg, FULL);
+    update_log(info, LOG_FULL);
+    pthread_mutex_unlock(&mutexPark);
+    write(fd, &message, sizeof(message));
+  }
+  else {
     accepted = 1;
     numOccupiedPlaces++;
     strcpy(message.msg, ENTRY_PARK);
     update_log(info, PARKING);
-  }
-  else {
-    strcpy(message.msg, FULL);
-    update_log(info, LOG_FULL);
-  }
+    write(fd, &message, sizeof(message));
+    pthread_mutex_unlock(&mutexPark);
 
-  pthread_mutex_unlock(&mutexPark);
-
-  write(fd, &message, sizeof(message));
-
-  if (accepted)
-  {
-    // Counts parking time
-		clock_t start, end;
+    clock_t start, end;
 		start = clock();
 		do {
 			end = clock();
 		} while(end-start <= info.parked_time);
 		// Parking time is over
 
-    // Validar saida (Zona critica)
-    pthread_mutex_lock(&mutexPark );
+    pthread_mutex_lock(&mutexPark);
 
     numOccupiedPlaces--;
     strcpy(exitmsg.msg, EXIT_PARK);
     update_log(info, EXIT_PARK);
-
     pthread_mutex_unlock(&mutexPark);
 
     write(fd, &exitmsg, sizeof(exitmsg));
   }
-
 
   free(arg);
   close(fd);
