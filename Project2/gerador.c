@@ -12,13 +12,6 @@
 #include <pthread.h>
 #include "utilities.h"
 
-/*
-O programa Gerador, de forma pseudo-aleatória, “cria” viaturas e associa um novo thread a cada uma.
-Cada thread associado a uma viatura (thread “viatura”) acompanha-la-á no seu “ciclo de vida”, desde que é
-“criada”, passando pelo accesso e eventual estacionamento no Parque, até que sai do Parque se nele tiver
-estacionado e “desaparece”.
-*/
-
 #define LOG_FILE "gerador.log"
 
 //global variables
@@ -85,9 +78,6 @@ int main (int argc, char * argv[]){
   initial_time = clock();
   double elapsed_time = 0;
   while (elapsed_time <= (double) t_ger){
-    /*vehicle_t as = create_vehicle();
-    printf("%s %s %d %Lf\n", as.fifoName, as.inf.fifoName, as.inf.v_id, (long double) as.inf.parked_time);*/
-
     vehicle_t* vehicle;
     vehicle = malloc(sizeof(vehicle_t));
     *vehicle = create_vehicle();
@@ -179,13 +169,13 @@ char* access_point(){
   int rd = rand()%100;
 
   if(rd < 25)
-  ret = "./temp/fifoN";
+  ret = "/tmp/fifoN";
   else if(rd < 50)
-  ret = "./temp/fifoS";
+  ret = "/tmp/fifoS";
   else if(rd < 75)
-  ret = "./temp/fifoO";
+  ret = "/tmp/fifoO";
   else if(rd < 100)
-  ret = "./temp/fifoE";
+  ret = "/tmp/fifoE";
 
   return ret;
 }
@@ -249,7 +239,8 @@ vehicle_t create_vehicle(){
   strcpy(ret.accessFIFO, ap);
   ret.inf.v_id = vID;
   ret.inf.parked_time =  parked_time();
-  sprintf(ret.inf.carFIFO, "%s_%d", "./temp/fifo_vh", vID);
+  sprintf(ret.inf.carFIFO, "%s_%d", "/tmp/fifo_vh", vID);
+  // TODO - APAGAR ISTO
   printf("Vehicle ID: %d\n", vID);
   printf("Access point: %s\n", ap);
   printf("Access FIFO: %s\n", ret.accessFIFO);

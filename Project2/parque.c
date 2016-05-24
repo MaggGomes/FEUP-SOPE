@@ -239,9 +239,9 @@ void close_park(){
 
 void update_log(vehicle_t vehicle, const char* msg){
 	char logMsg[BUF_LENGTH];
-	// TODO - CORRIGIR
+
 	sprintf(logMsg, "%8ld ; %4d ; %7d ; %s\n",
-	clock() - startT, 0, vehicle.inf.v_id, "cheio");
+	clock() - startT, numOccupiedPlaces, vehicle.inf.v_id, "cheio");
 
 	// Writes to the log
 	fprintf(fdLog, logMsg, strlen(logMsg));
