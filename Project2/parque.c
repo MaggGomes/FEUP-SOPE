@@ -181,7 +181,16 @@ void* car_park(void* arg){
 	}
 
 
+	clock_t start, end;
+            start = clock();
+            do {
+                    end = clock();
+            } while(end-start <= vehicle.inf.parked_time);
+
+
 	pthread_mutex_unlock(&mutexPark);
+
+
 
 	numOccupiedPlaces--;
 
