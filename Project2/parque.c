@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include "utilities.h"
 
-// Global variables
+// Global Variables
 static int numPlaces;
 static int openTime;
 static int numOccupiedPlaces = 0;
@@ -18,6 +18,7 @@ static clock_t startT;
 static pthread_mutex_t mutexPark = PTHREAD_MUTEX_INITIALIZER;
 static FILE* fdLog;
 const char* LOG_FILENAME = "parque.log";
+static sem_t* smf;
 
 /**
 * @brief Receives the vehicles
@@ -34,15 +35,6 @@ void* controller(void* arg);
 void* car_park(void* arg);
 
 /**
-* @brief Creates and opens a fifo
-*
-* @param pathName where the fifo will be created
-* @param flag used to open the fifo
-* @return the file descriptor of the fifo if no error has ocurred; -1 otherwise
-*/
-int create_fifo(char* pathName, int flag);
-
-/**
 * @brief Informs all the controllers to stop receiving cars
 */
 void close_park();
@@ -55,65 +47,71 @@ void close_park();
 */
 void update_log(info_t vehicle, const char* msg);
 
-int main (int argc, char * argv[]){
+int main(int argc, char** argv) {
 
-	pthread_t controllerThreads[NUM_CONTROLLERS];
-	int i;
+  pthread_t controllerThreads[NUM_CONTROLLERS];
+  int i;
 
-	if (argc != 3 ){
-		fprintf(stderr, "Usage: %s <N_LUGARES> <T_ABERTURA>\n", argv[0]);
-		exit(1);
-	}
+  if (argc != 3 ){
+    fprintf(stderr, "Usage: %s <N_LUGARES> <T_ABERTURA>\n", argv[0]);
+    exit(1);
+  }
 
-	errno = 0;
-	numPlaces = strtol(argv[1], NULL, 10);
-	if (errno == ERANGE || errno == EINVAL) {
-		perror("convert N_LUGARES failed");
-		exit(2);
-	}
+  errno = 0;
+  numPlaces = strtol(argv[1], NULL, 10);
+  if (errno == ERANGE || errno == EINVAL) {
+    perror("convert N_LUGARES failed");
+    exit(2);
+  }
 
-	errno = 0;
-	openTime = strtol(argv[2], NULL, 10);
-	if (errno == ERANGE || errno == EINVAL) {
-		perror("convert T_ABERTURA failed");
-		exit(3);
-	}
+  errno = 0;
+  openTime = strtol(argv[2], NULL, 10);
+  if (errno == ERANGE || errno == EINVAL) {
+    perror("convert T_ABERTURA failed");
+    exit(3);
+  }
 
-	if ( (fdLog = fopen(LOG_FILENAME, "w")) == NULL ){
-		perror(LOG_FILENAME);
-		exit(4);
-	}
+  // Creates a semaphore
+  if ((smf = create_smf("/semaphore")) == SEM_FAILED)
+  {
+    exit(4);
+  }
 
-	fprintf(fdLog, "t(ticks) ; nlug ; id_viat ; observ\n");
+  // Opens parque.log
+  if ( (fdLog = fopen(LOG_FILENAME, "w")) == NULL ){
+    perror(LOG_FILENAME);
+    exit(5);
+  }
 
-	startT = clock(); // Current time
+  fprintf(fdLog, "t(ticks) ; nlug ; id_viat ; observ\n");
 
-	// Creates a thread for each controller
-	for (i = 0; i  < NUM_CONTROLLERS; i++){
-		pthread_create(&controllerThreads[i], NULL, controller, fifoControllers[i]);
-	}
+  startT = clock(); // Current time
 
-	sleep(openTime); // Park is open
+  for (i = 0; i < NUM_CONTROLLERS; i++)
+  {
+    pthread_create(&controllerThreads[i], NULL, controller, fifoControllers[i]);
+  }
 
-	close_park(); // Closes park
+  sleep(openTime); // Park is open
 
-	// Waits for the thread of each park's controller
-	for (i = 0; i < NUM_CONTROLLERS; i++){
-		pthread_join(controllerThreads[i], NULL);
-	}
+  sem_wait(smf);
+  close_park(); // Closes park
 
-	fclose(fdLog);
-	// TODO - APAGAR
-	printf("%s\n", "chegou ao fim do main");
+  // Waits for the thread of each park's controller
+  for (i = 0; i < NUM_CONTROLLERS; i++)
+    pthread_join(controllerThreads[i], NULL);
 
-	pthread_exit(0);
+  sem_post(smf);
+
+  fclose(fdLog);
+  pthread_exit(0);
 }
 
 void* controller(void* arg){
 
 	int fd, n;
 	char* fifoName;
-	info_t vehicle;
+	info_t* vehicle;
 
 	pthread_t carParkID;
 
@@ -125,17 +123,20 @@ void* controller(void* arg){
 		pthread_exit(NULL);
 	}
 
-	// Reads FIFO
-	while ((n = read(fd, &vehicle, sizeof(info_t))) >= 0) {
+	while (1) {
+    vehicle = (info_t *) malloc(sizeof(info_t));
+    // Reads FIFO
+    n = read(fd, vehicle, sizeof(* vehicle));
+
 		// If a vehicle is received
 		if (n > 0)
 		{
-			if (vehicle.stopVehicle == 1){ // Stop vehicle --> close controller
+			if (vehicle->stopVehicle == 1){ // Stop vehicle --> close controller
 				break;
 			}
 			// Creates a new thread for each car to park it if possible
 			else
-			pthread_create(&carParkID, NULL, car_park, &vehicle);
+			pthread_create(&carParkID, NULL, car_park, vehicle);
 		}
 	}
 
@@ -146,17 +147,18 @@ void* controller(void* arg){
 	close(fd);
 
 	if (unlink(fifoName) == -1)
-	perror(fifoName);
+	perror(strcat("Erro unlinking fifo ", fifoName));
 
 	pthread_exit(NULL);
 }
 
-void* car_park(void* arg){
+void* car_park(void* arg) {
+  int fd;
+  info_t info = *(info_t *) arg;
+  message_t message, exitmsg;
+  int accepted = 0;
 
-	int fd;
-	char msg[BUF_LENGTH];
-	info_t vehicle = *(info_t *) arg;
-	pthread_t selfThread = pthread_self();
+  pthread_t selfThread = pthread_self();
 
 	// Makes the thread detached
 	if (pthread_detach(selfThread) != 0){
@@ -164,65 +166,59 @@ void* car_park(void* arg){
 		return NULL;
 	}
 
-	if ((fd = open(vehicle.carFIFO, O_WRONLY  | O_NONBLOCK)) == -1){
-		sprintf(msg, "Error opening FIFO %s", vehicle.carFIFO);
-		perror(msg);
-		return NULL;
-	}
 
-	pthread_mutex_lock(&mutexPark);
-	if (numOccupiedPlaces == numPlaces){
-		write(fd, FULL, BUF_LENGTH);
-		update_log(vehicle, FULL);
-	}
-	else { // There are free parking places
-		numOccupiedPlaces++;
-		update_log(vehicle, PARKING);
-		pthread_mutex_unlock(&mutexPark);
-		write(fd, ENTRY_PARK, BUF_LENGTH);
+  if ((fd = open(info.carFIFO, O_WRONLY)) == -1 )
+  {
+    perror(strcat(info.carFIFO, " FIFO opening failed on arrumador"));
+    free(arg);
+    return NULL;
+  }
 
-		// Counts parking time
+  // Validar entrada (Zona critica)
+  pthread_mutex_lock(&mutexPark );
+
+  if (numOccupiedPlaces < numPlaces)
+  {
+    accepted = 1;
+    numOccupiedPlaces++;
+    strcpy(message.msg, ENTRY_PARK);
+    update_log(info, PARKING);
+  }
+  else {
+    strcpy(message.msg, FULL);
+    update_log(info, LOG_FULL);
+  }
+
+  pthread_mutex_unlock(&mutexPark);
+
+  write(fd, &message, sizeof(message));
+
+  if (accepted)
+  {
+    // Counts parking time
 		clock_t start, end;
 		start = clock();
 		do {
 			end = clock();
-		} while(end-start <= vehicle.parked_time);
+		} while(end-start <= info.parked_time);
 		// Parking time is over
 
-		pthread_mutex_lock(&mutexPark);
-		update_log(vehicle, EXIT_PARK);
-		numOccupiedPlaces--;
-		pthread_mutex_unlock(&mutexPark);
+    // Validar saida (Zona critica)
+    pthread_mutex_lock(&mutexPark );
 
-		write(fd, EXIT_PARK, BUF_LENGTH);
-	}
+    numOccupiedPlaces--;
+    strcpy(exitmsg.msg, EXIT_PARK);
+    update_log(info, EXIT_PARK);
 
-	close(fd);
+    pthread_mutex_unlock(&mutexPark);
 
-	return NULL;
-}
+    write(fd, &exitmsg, sizeof(exitmsg));
+  }
 
-int create_fifo(char* pathName, int flag) {
-	int fd;
 
-	if (mkfifo(pathName, S_IWUSR | S_IRUSR) == -1)
-	{
-		perror(pathName);
-		return -1;
-	}
-
-	if ( (fd = open(pathName, flag)) == -1 )
-	{
-		perror("Can't open FIFO.");
-		if (unlink(pathName) == -1)
-		{
-			perror("FIFO unlink failed");
-			return -1;
-		}
-		return -1;
-	}
-
-	return fd;
+  free(arg);
+  close(fd);
+  return NULL;
 }
 
 void close_park(){
@@ -232,24 +228,21 @@ void close_park(){
 
 	for (i = 0; i < NUM_CONTROLLERS; i++){
 		if ((fd = open(fifoControllers[i], O_WRONLY)) == -1){
-			perror(fifoControllers[i]);
+			perror(strcat("Error closing controller ", fifoControllers[i]));
 			return;
 		}
 
-		write(fd, &vehicle, sizeof(info_t));
+		write(fd, &vehicle, sizeof(vehicle));
 		close(fd);
 	}
 }
 
 void update_log(info_t vehicle, const char* msg){
-	char logMsg[512];
-	printf("%s\n", "checou ao update");
+  char logMsg[BUF_LOG_LENGTH];
 
-	sprintf(logMsg, "%8ld ; %4d ; %7d ; %s\n",
-	clock() - startT, numOccupiedPlaces, vehicle.v_id, msg);
-	// TODO - APAGAR
-	printf("%s\n", logMsg);
+  sprintf(logMsg, "%8ld ; %4d ; %7d ; %s\n",
+  clock() - startT, numOccupiedPlaces, vehicle.v_id, msg);
 
-	// Writes to the log
-	fprintf(fdLog, logMsg, BUF_LENGTH);
+  // Writes to the log
+  fprintf(fdLog, logMsg, BUF_LENGTH);
 }

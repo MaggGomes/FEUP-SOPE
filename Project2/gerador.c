@@ -97,7 +97,7 @@ int main (int argc, char * argv[]){
 void* create_vehicle_tracker(void* arg) {
   pthread_t selfThread = pthread_self();
   clock_t temp_start= clock();
-  char message[50];
+  message_t tempMessage;
 
   if (pthread_detach(selfThread) != 0){
     perror("Failed to make a thread detached.\n");
@@ -116,8 +116,8 @@ void* create_vehicle_tracker(void* arg) {
 
   if ( (fifo_ctr = open(tempVeh.accessFIFO, O_WRONLY | O_NONBLOCK)) == -1 ){
     log_inf(tempVeh, "encerrado");
-    free(arg);
     endFifo(tempVeh.accessFIFO);
+    free(arg);
     sem_post(smf);
     return NULL;
   }
@@ -125,8 +125,8 @@ void* create_vehicle_tracker(void* arg) {
   if (write(fifo_ctr, &tempVeh.inf, sizeof(tempVeh.inf)) == -1){
     perror("Problem writing in controller");
     endFifo(tempVeh.inf.carFIFO);
-    free(arg);
     close(fifo_ctr);
+    free(arg);
     sem_post(smf);
     return NULL;
   }
@@ -135,30 +135,30 @@ void* create_vehicle_tracker(void* arg) {
 
   sem_post(smf);
 
-  if (read(fifo_vehicle, &message, sizeof(message)) == -1){
+  if (read(fifo_vehicle, &tempMessage, sizeof(tempMessage)) == -1){
     perror("Error reading from controller");
     endFifo(tempVeh.inf.carFIFO);
-    free(arg);
     close(fifo_vehicle);
+    free(arg);
     return NULL;
   }
 
-  log_inf(tempVeh, message);
+  log_inf(tempVeh, tempMessage.msg);
 
-  if (strcmp(message, ENTRY_PARK) == 0){
-    if (read(fifo_vehicle, &message, sizeof(message)) == -1){
+  if (strcmp(tempMessage.msg, ENTRY_PARK) == 0){
+    if (read(fifo_vehicle, &tempMessage, sizeof(tempMessage)) == -1){
       perror("Error reading from controller(second time)");
       endFifo(tempVeh.inf.carFIFO);
-      free(arg);
       close(fifo_vehicle);
+      free(arg);
       return NULL;
     }
 
-    log_inf2(tempVeh, message, (clock() - temp_start)+ tempVeh.inf.parked_time);
+    log_inf2(tempVeh, tempMessage.msg, (clock() - temp_start)+ tempVeh.inf.parked_time);
   }
 
-  free(arg);
   close(fifo_vehicle);
+  free(arg);
   endFifo(tempVeh.inf.carFIFO);
   return NULL;
 }
