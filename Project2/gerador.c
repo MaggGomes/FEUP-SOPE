@@ -71,6 +71,7 @@ int main (int argc, char * argv[]){
     exit(5);
   }
 
+  printf("Generator started!\n");
   srand(time(NULL));
 
   pthread_t vehicle_tracker;
@@ -89,8 +90,11 @@ int main (int argc, char * argv[]){
     elapsed_time = (double) (clock() - initial_time) / CLOCKS_PER_SEC;
   }
 
+
+  printf("Generator stopped!\n");
   return 0;
 }
+
 
 //functions definitions
 

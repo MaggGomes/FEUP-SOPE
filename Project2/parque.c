@@ -123,6 +123,7 @@ void* controller(void* arg){
 		pthread_exit(NULL);
 	}
 
+
 	while (1) {
     vehicle = (info_t *) malloc(sizeof(info_t));
     // Reads FIFO
