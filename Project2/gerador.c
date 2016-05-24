@@ -26,17 +26,73 @@ static FILE* logger;
 //auxiliar functions declarations
 
 void* create_vehicle_tracker(void* arg);
+
+/**
+* @brief generates a pseudo-random time to simulate the time that a car will be parked based in the argument <U_RELOGIO>
+*
+*@return a int variable with the time generated
+*/
 char* access_point();
+
+/**
+* @brief generates a pseudo-random time to simulate the time that a car will be parked based in the argument <U_RELOGIO>
+*
+*@return a int variable with the time generated
+*/
 int parked_time();
+
+/**
+* @brief generates a pseudo-random wait time between the creation of vehicles which is based in the argument <U_RELOGIO>
+*
+*@return a clock_t variable with the time generated
+*/
 clock_t time_between_generations();
+
+/**
+* @brief waits between car creations based in the function time_between_generations();
+*/
 void wait_new_vehicle();
+
+/**
+* @brief Creates and opens a fifo
+*
+* @param pathName where the fifo will be created
+* @param flag used to open the fifo
+* @return the file descriptor of the fifo if no error has ocurred; -1 otherwise
+*/
 int startFifo(char* fifoName, int fl);
-int endFifo(char* fifoName);
+
+/**
+* @brief Creates a semaphore
+*
+* @param receives the semaphore path
+* @return the semaphore
+*/
 sem_t* startSmf(const char* name);
+
+/**
+* @brief Starts the log file and writes the first line
+*
+* @param receives the semaphore path
+* @return the semaphore
+*/
 FILE* startLog(char* name);
+
+/**
+* @brief updates the status of vehicle
+*/
 int log_inf(vehicle_t vehicle, const char* status);
+
+/**
+* @brief updates the status of vehicle and wirtes is lifespan
+*/
 int log_inf2(vehicle_t vehicle, const char* status, clock_t lifespan);
 
+/**
+* @brief creates a vehicle with all his needed vairables initialized
+*
+* @return vehicle_t struct
+*/
 vehicle_t create_vehicle();
 
 //main
@@ -120,7 +176,8 @@ void* create_vehicle_tracker(void* arg) {
 
   if ( (fifo_ctr = open(tempVeh.accessFIFO, O_WRONLY | O_NONBLOCK)) == -1 ){
     log_inf(tempVeh, "encerrado");
-    endFifo(tempVeh.accessFIFO);
+    if (unlink(tempVeh.accessFIFO) == -1)
+	     perror(strcat("Error unlinking fifo ", tempVeh.accessFIFO));
     free(arg);
     sem_post(smf);
     return NULL;
@@ -128,7 +185,8 @@ void* create_vehicle_tracker(void* arg) {
 
   if (write(fifo_ctr, &tempVeh.inf, sizeof(tempVeh.inf)) == -1){
     perror("Problem writing in controller");
-    endFifo(tempVeh.inf.carFIFO);
+    if (unlink(tempVeh.inf.carFIFO) == -1)
+	     perror(strcat("Error unlinking fifo ", tempVeh.inf.carFIFO));
     close(fifo_ctr);
     free(arg);
     sem_post(smf);
@@ -141,7 +199,8 @@ void* create_vehicle_tracker(void* arg) {
 
   if (read(fifo_vehicle, &tempMessage, sizeof(tempMessage)) == -1){
     perror("Error reading from controller");
-    endFifo(tempVeh.inf.carFIFO);
+    if (unlink(tempVeh.inf.carFIFO) == -1)
+	     perror(strcat("Error unlinking fifo ", tempVeh.inf.carFIFO));
     close(fifo_vehicle);
     free(arg);
     return NULL;
@@ -152,7 +211,8 @@ void* create_vehicle_tracker(void* arg) {
   if (strcmp(tempMessage.msg, ENTRY_PARK) == 0){
     if (read(fifo_vehicle, &tempMessage, sizeof(tempMessage)) == -1){
       perror("Error reading from controller(second time)");
-      endFifo(tempVeh.inf.carFIFO);
+      if (unlink(tempVeh.inf.carFIFO) == -1)
+  	     perror(strcat("Error unlinking fifo ", tempVeh.inf.carFIFO));
       close(fifo_vehicle);
       free(arg);
       return NULL;
@@ -163,7 +223,8 @@ void* create_vehicle_tracker(void* arg) {
 
   close(fifo_vehicle);
   free(arg);
-  endFifo(tempVeh.inf.carFIFO);
+  if (unlink(tempVeh.inf.carFIFO) == -1)
+     perror(strcat("Error unlinking fifo ", tempVeh.inf.carFIFO));
   return NULL;
 }
 
@@ -266,7 +327,8 @@ int startFifo(char* fifoName, int fl) {
   {
     sprintf(errorMsg, "FIFO %s not opened", fifoName);
     perror(errorMsg);
-    endFifo(fifoName);
+    if (unlink(fifoName) == -1)
+	     perror(strcat("Error unlinking fifo ", fifoName));
     return -1;
   }
 
