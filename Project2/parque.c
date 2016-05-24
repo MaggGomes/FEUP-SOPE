@@ -149,11 +149,9 @@ void* controller(void* arg){
 	pthread_exit(NULL);
 }
 
-// TODO - FAZER
 void* car_park(void* arg){
 
 	int fd;
-	char msg[BUF_LENGTH];
 	vehicle_t vehicle = *(vehicle_t *) arg;
 	pthread_t selfThread = pthread_self();
 
@@ -169,80 +167,35 @@ void* car_park(void* arg){
 	}
 
 	pthread_mutex_lock(&mutexPark);
-
-	if (numOccupiedPlaces < numPlaces){
-		numOccupiedPlaces++;
-
-	}
-
-	else {
+	if (numOccupiedPlaces == numPlaces){
 		write(fd, FULL, sizeof(FULL));
 		update_log(vehicle, FULL);
 	}
+	else { // There are free parking places
+		numOccupiedPlaces++;
+		update_log(vehicle, PARKING);
+		pthread_mutex_unlock(&mutexPark);
+		write(fd, ENTRY_PARK, sizeof(ENTRY_PARK));
 
+		// Counts parking time
+		clock_t start, end;
+		start = clock();
+		do {
+			end = clock();
+		} while(end-start <= vehicle.inf.parked_time);
+		// Parking time is over
 
-	clock_t start, end;
-	start = clock();
-	do {
-		end = clock();
-	} while(end-start <= vehicle.inf.parked_time);
+		pthread_mutex_lock(&mutexPark);
+		update_log(vehicle, EXIT_PARK);
+		numOccupiedPlaces--;
+		pthread_mutex_unlock(&mutexPark);
 
+		write(fd, EXIT_PARK, sizeof(EXIT_PARK));
+	}
 
-	pthread_mutex_unlock(&mutexPark);
+	close(fd);
 
-
-
-	numOccupiedPlaces--;
-
-	/*
-
-
-	// Validar entrada (Zona critica)
-	pthread_mutex_lock(&arrumador_lock);
-
-	if (numLugaresOcupados < numLugares)
-	{
-	accepted = 1;
-	numLugaresOcupados++;
-	strcpy(feedback.msg, ACCEPTED_STR);
-	park_log(info, LOG_ACCEPTED_STR);
-}
-else {
-strcpy(feedback.msg, FULL_STR);
-park_log(info, LOG_FULL_STR);
-}
-
-pthread_mutex_unlock(&arrumador_lock);
-/*********************************/
-
-/*  write(fd_vehicle, &feedback, sizeof(feedback));
-
-if (accepted)
-{
-feedback_t exit_feedback;
-
-// Esperar
-wait_ticks(info.parking_time);
-
-// Validar saida (Zona critica)
-pthread_mutex_lock(&arrumador_lock);
-
-numLugaresOcupados--;
-strcpy(exit_feedback.msg, EXITING_STR);
-park_log(info, LOG_EXITING_STR);
-
-pthread_mutex_unlock(&arrumador_lock);
-/*********************************/
-
-/*  write(fd_vehicle, &exit_feedback, sizeof(exit_feedback));
-}
-
-
-free(arg);
-close(fd_vehicle);
-return NULL;*/
-
-return NULL;
+	return NULL;
 }
 
 int create_fifo(char* pathName, int flag) {

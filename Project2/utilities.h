@@ -6,6 +6,7 @@
 
 // Status messages
 const char* ENTRY_PARK = "entrada";
+const char* PARKING = "estacionamento";
 const char* EXIT_PARK = "saida";
 const char* FULL = "cheio!";
 const char* LOG_FULL = "cheio";
