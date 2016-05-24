@@ -117,24 +117,24 @@ void* create_vehicle_tracker(void* arg) {
   vehicle_t tempVeh = *(vehicle_t *) arg;
   int fifo_vehicle,fifo_ctr;
 
-  if ((fifo_vehicle = startFifo(tempVeh.inf.fifoName, O_RDWR)) == -1) {
+  if ((fifo_vehicle = startFifo(tempVeh.inf.carFIFO, O_RDWR)) == -1) {
     free(arg);
     return NULL;
   }
 
   sem_wait(smf);
 
-  if ( (fifo_ctr = open(tempVeh.fifoName, O_WRONLY | O_NONBLOCK)) == -1 ){
+  if ( (fifo_ctr = open(tempVeh.accessFIFO, O_WRONLY | O_NONBLOCK)) == -1 ){
     log_inf(tempVeh, "encerrado");
     free(arg);
-    endFifo(tempVeh.fifoName);
+    endFifo(tempVeh.accessFIFO);
     sem_post(smf);
     return NULL;
   }
 
   if (write(fifo_ctr, &tempVeh.inf, sizeof(tempVeh.inf)) == -1){
     perror("Problem writing in controller");
-    endFifo(tempVeh.inf.fifoName);
+    endFifo(tempVeh.inf.carFIFO);
     free(arg);
     close(fifo_ctr);
     sem_post(smf);
@@ -147,7 +147,7 @@ void* create_vehicle_tracker(void* arg) {
 
   if (read(fifo_vehicle, &message, sizeof(message)) == -1){
     perror("Error reading from controller");
-    endFifo(tempVeh.inf.fifoName);
+    endFifo(tempVeh.inf.carFIFO);
     free(arg);
     close(fifo_vehicle);
     return NULL;
@@ -158,7 +158,7 @@ void* create_vehicle_tracker(void* arg) {
   if (strcmp(message, ENTRY_PARK) == 0){
     if (read(fifo_vehicle, &message, sizeof(message)) == -1){
       perror("Error reading from controller(second time)");
-      endFifo(tempVeh.inf.fifoName);
+      endFifo(tempVeh.inf.carFIFO);
       free(arg);
       close(fifo_vehicle);
       return NULL;
@@ -169,7 +169,7 @@ void* create_vehicle_tracker(void* arg) {
 
   free(arg);
   close(fifo_vehicle);
-  endFifo(tempVeh.inf.fifoName);
+  endFifo(tempVeh.inf.carFIFO);
   return NULL;
 }
 
@@ -246,14 +246,14 @@ void wait_new_vehicle(){
 vehicle_t create_vehicle(){
   vehicle_t ret;
   char* ap = access_point();
-  strcpy(ret.fifoName, ap);
+  strcpy(ret.accessFIFO, ap);
   ret.inf.v_id = vID;
   ret.inf.parked_time =  parked_time();
-  sprintf(ret.inf.fifoName, "%s_%d", "./temp/fifo_vh", vID);
+  sprintf(ret.inf.carFIFO, "%s_%d", "./temp/fifo_vh", vID);
   printf("Vehicle ID: %d\n", vID);
   printf("Access point: %s\n", ap);
-  printf("Access FIFO: %s\n", ret.fifoName);
-  printf("Tracker FIFO: %s\n", ret.inf.fifoName);
+  printf("Access FIFO: %s\n", ret.accessFIFO);
+  printf("Tracker FIFO: %s\n", ret.inf.carFIFO);
   printf("Time to be parked: %f\n\n",(double) ret.inf.parked_time);
 
   vID++;
@@ -331,7 +331,7 @@ int log_inf(vehicle_t vehicle, const char* status) {
   sprintf(msg, "%8ld ; %7d ; %4c   ; %10ld ; %6s ; %s\n",
   clock() - initial_time,
   vehicle.inf.v_id,
-  vehicle.fifoName[strlen(vehicle.fifoName) - 1],
+  vehicle.accessFIFO[strlen(vehicle.accessFIFO) - 1],
   vehicle.inf.parked_time,
   "?",
   status
@@ -350,7 +350,7 @@ int log_inf2(vehicle_t vehicle, const char* status, clock_t lifespan) {
   sprintf(msg, "%8ld ; %7d ; %4c   ; %10ld ; %6s ; %s\n",
   clock() - initial_time,
   vehicle.inf.v_id,
-  vehicle.fifoName[strlen(vehicle.fifoName) - 1],
+  vehicle.accessFIFO[strlen(vehicle.accessFIFO) - 1],
   vehicle.inf.parked_time,
   aux_str,
   status

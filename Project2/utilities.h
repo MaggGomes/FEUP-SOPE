@@ -17,11 +17,11 @@ char* fifoControllers[NUM_CONTROLLERS] = {"/tmp/fifoN", "/tmp/fifoS", "/tmp/fifo
 typedef struct {
   clock_t parked_time;
   int v_id;
-  char fifoName[BUF_LENGTH];
+  char carFIFO[BUF_LENGTH];
 } info_t;
 
 typedef struct {
-  char fifoName[BUF_LENGTH];
+  char accessFIFO[BUF_LENGTH];
   int stopVehicle; // 1 if is a stop vehicle,; 0 otherwise
   info_t inf;
 } vehicle_t;
