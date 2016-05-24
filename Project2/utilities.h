@@ -19,11 +19,11 @@ typedef struct {
   clock_t parked_time;
   int v_id;
   char carFIFO[BUF_LENGTH];
+  int stopVehicle; // 1 if is a stop vehicle,; 0 otherwise
 } info_t;
 
 typedef struct {
   char accessFIFO[BUF_LENGTH];
-  int stopVehicle; // 1 if is a stop vehicle,; 0 otherwise
   info_t inf;
 } vehicle_t;
 

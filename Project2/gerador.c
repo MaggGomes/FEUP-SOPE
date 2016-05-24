@@ -235,11 +235,11 @@ void wait_new_vehicle(){
 
 vehicle_t create_vehicle(){
   vehicle_t ret;
-  ret.stopVehicle = 0;
   char* ap = access_point();
   strcpy(ret.accessFIFO, ap);
   ret.inf.v_id = vID;
   ret.inf.parked_time =  parked_time();
+  ret.inf.stopVehicle = 0;
   sprintf(ret.inf.carFIFO, "%s_%d", "/tmp/fifo_vh", vID);
 
   vID++;

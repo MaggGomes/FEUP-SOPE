@@ -53,7 +53,7 @@ void close_park();
 * @param vehicle
 * @param msg to be written
 */
-void update_log(vehicle_t vehicle, const char* msg);
+void update_log(info_t vehicle, const char* msg);
 
 int main (int argc, char * argv[]){
 
@@ -103,6 +103,8 @@ int main (int argc, char * argv[]){
 	}
 
 	fclose(fdLog);
+	// TODO - APAGAR
+	printf("%s\n", "chegou ao fim do main");
 
 	pthread_exit(0);
 }
@@ -111,7 +113,7 @@ void* controller(void* arg){
 
 	int fd, n;
 	char* fifoName;
-	vehicle_t vehicle;
+	info_t vehicle;
 
 	pthread_t carParkID;
 
@@ -124,7 +126,7 @@ void* controller(void* arg){
 	}
 
 	// Reads FIFO
-	while ((n = read(fd, &vehicle, sizeof(vehicle_t))) >= 0) {
+	while ((n = read(fd, &vehicle, sizeof(info_t))) >= 0) {
 		// If a vehicle is received
 		if (n > 0)
 		{
@@ -153,7 +155,7 @@ void* car_park(void* arg){
 
 	int fd;
 	char msg[BUF_LENGTH];
-	vehicle_t vehicle = *(vehicle_t *) arg;
+	info_t vehicle = *(info_t *) arg;
 	pthread_t selfThread = pthread_self();
 
 	// Makes the thread detached
@@ -162,8 +164,8 @@ void* car_park(void* arg){
 		return NULL;
 	}
 
-	if ((fd = open(vehicle.inf.carFIFO, O_WRONLY  | O_NONBLOCK)) == -1){
-		sprintf(msg, "Error opening FIFO %s", vehicle.inf.carFIFO);
+	if ((fd = open(vehicle.carFIFO, O_WRONLY  | O_NONBLOCK)) == -1){
+		sprintf(msg, "Error opening FIFO %s", vehicle.carFIFO);
 		perror(msg);
 		return NULL;
 	}
@@ -184,7 +186,7 @@ void* car_park(void* arg){
 		start = clock();
 		do {
 			end = clock();
-		} while(end-start <= vehicle.inf.parked_time);
+		} while(end-start <= vehicle.parked_time);
 		// Parking time is over
 
 		pthread_mutex_lock(&mutexPark);
@@ -225,7 +227,7 @@ int create_fifo(char* pathName, int flag) {
 
 void close_park(){
 	int fd, i;
-	vehicle_t vehicle;
+	info_t vehicle;
 	vehicle.stopVehicle = 1; // Stop vehicle
 
 	for (i = 0; i < NUM_CONTROLLERS; i++){
@@ -234,19 +236,19 @@ void close_park(){
 			return;
 		}
 
-		write(fd, &vehicle, sizeof(vehicle_t));
+		write(fd, &vehicle, sizeof(info_t));
 		close(fd);
 	}
 }
 
-void update_log(vehicle_t vehicle, const char* msg){
-	char logMsg[BUF_LENGTH];
+void update_log(info_t vehicle, const char* msg){
+	char logMsg[512];
 	printf("%s\n", "checou ao update");
 
 	sprintf(logMsg, "%8ld ; %4d ; %7d ; %s\n",
-	clock() - startT, numOccupiedPlaces, vehicle.inf.v_id, "cheio");
+	clock() - startT, numOccupiedPlaces, vehicle.v_id, msg);
+	// TODO - APAGAR
 	printf("%s\n", logMsg);
-	sleep(10);
 
 	// Writes to the log
 	fprintf(fdLog, logMsg, BUF_LENGTH);
